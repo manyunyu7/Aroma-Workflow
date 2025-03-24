@@ -83,6 +83,7 @@
                                 <td>{{ $workflow->nama_kegiatan }}</td>
                                 <td>{{ $workflow->jenisAnggaran->nama }}</td>
                                 <td>{{ number_format($workflow->total_nilai, 0, ',', '.') }}</td>
+
                                 <!-- Creator -->
                                 <td>
                                     @php
@@ -90,7 +91,7 @@
                                     @endphp
                                     @if ($creator)
                                         <span class="badge badge-info">
-                                            <i class="fas fa-user"></i> {{ $creator->user->name }}
+                                            <i class="fas fa-user"></i> {{ $creator->user_detail ?? '-' }}
                                         </span>
                                     @else
                                         -
@@ -102,7 +103,7 @@
                                     @foreach ($workflow->approvals->whereIn('role', ['REVIEWED_BY_MAKER', 'REVIEWED_BY_APPROVER']) as $reviewer)
                                         <div class="mb-1">
                                             <span class="badge badge-warning">
-                                                <i class="fas fa-user-check"></i> {{ $reviewer->user->name }}
+                                                <i class="fas fa-user-check"></i> {{ $reviewer->user_detail ?? '-' }}
                                             </span>
                                         </div>
                                     @endforeach
@@ -113,7 +114,7 @@
                                     @foreach ($workflow->approvals->whereIn('role', ['APPROVED_BY_HEAD_UNIT', 'ACKNOWLEDGED_BY_SPV']) as $approval)
                                         <div class="mb-1">
                                             <span class="badge badge-success">
-                                                <i class="fas fa-user-shield"></i> {{ $approval->user->name }}
+                                                <i class="fas fa-user-shield"></i> {{ $approval->user_detail ?? '-' }}
                                             </span>
                                         </div>
                                     @endforeach

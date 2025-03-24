@@ -18,6 +18,7 @@ class CreateUsersTable extends Migration
             $table->string('name');
             $table->string('nip')->unique();
             $table->string('email')->unique();
+            $table->string('nik')->unique()->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('role');  //1 for admin, // 2 for pegawai , // 3 for user

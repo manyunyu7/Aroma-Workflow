@@ -2,11 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\JenisAnggaran;
 use App\Models\TicketCategory;
 use App\Models\User;
 use Exception;
 use Illuminate\Database\Seeder;
 use Faker\Factory as Faker;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class TicketSeeder extends Seeder
 {
@@ -19,13 +22,33 @@ class TicketSeeder extends Seeder
     {
         $faker = Faker::create("id_ID");
 
+
         // Predefined users
         $this->addUser("Admin", "admin@email.com", "password", "1", "0000000000000001");
         $this->addUser("user", "user@gmail.com", "password", "3", "0000000000000002");
         $this->addUser("staff", "staff@gmail.com", "password", "2", "0000000000000003");
 
+
+        Auth::loginUsingId(1);
+        // Use raw SQL queries to insert JenisAnggaran records
+        DB::statement("
+INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
+VALUES (1, 'Capital Expenditure', 1, 1, NOW(), NOW())
+");
+
+        DB::statement("
+INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
+VALUES (2, 'Operational Expenditure', 1, 1, NOW(), NOW())
+");
+
+        DB::statement("
+INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
+VALUES (3, 'Revenue Expenditure', 1, 1, NOW(), NOW())
+");
+
+
         // Generate 20,000 users
-        for ($i = 0; $i < 20000; $i++) {
+        for ($i = 0; $i < 100; $i++) {
             try {
                 $role = $faker->randomElement([2, 3]); // Randomly assign staff (2) or user (3)
                 $nip = $faker->unique()->numerify(str_repeat("#", 16)); // Unique 16-digit NIP
@@ -47,6 +70,8 @@ class TicketSeeder extends Seeder
         $this->addCategory("Masalah Printer");
         $this->addCategory("Masalah Aplikasi");
         $this->addCategory("Masalah Lainnya");
+
+
 
         echo "Seeding completed!";
     }

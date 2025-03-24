@@ -17,7 +17,7 @@ class JenisAnggaran extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['nama', 'is_show', 'created_by', 'updated_by'];
+    protected $fillable = ['nama', 'is_show', 'created_by', 'updated_by','id'];
 
     protected static function boot()
     {

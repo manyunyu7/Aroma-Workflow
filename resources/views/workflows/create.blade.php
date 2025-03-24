@@ -225,8 +225,8 @@
                         <!-- Pre-filled row for the logged-in user -->
                         <tr>
                             <td>
-                                {{ $user->name }} <!-- Display the logged-in user's name -->
-                                <input type="hidden" name="pics[0][user_id]" value="{{ $user->id }}">
+                                {{ getAuthName() }} <!-- Display the logged-in user's name -->
+                                <input type="hidden" name="pics[0][user_id]" value="{{ getAuthId() }}">
                             </td>
                             <td>Created By <input type="hidden" name="pics[0][role]" value="CREATOR"></td>
                             <td>
@@ -351,27 +351,26 @@
                 picModal.show();
             });
 
-            let picIndex = 0; // Counter for indexing PICs
+            let picIndex = 1; // Counter for indexing PICs
 
             $("#save-pic").click(function() {
                 const userId = userSelect.val();
+                console.log("choosing " + userId);
                 const userName = userSelect.find("option:selected").text();
                 const roleCode = $("#role-select").val();
                 const roleName = $("#role-select option:selected").text();
-
                 let editingRow = $("#save-pic").data("editingRow");
 
                 if (editingRow) {
-                    // Update existing row
-                    editingRow.find("td:eq(0)").html(
-                        `${userName} <input type="hidden" name="pics[][user_id]" value="${userId}">`);
-                    editingRow.find("td:eq(1)").html(
-                        `${roleName} <input type="hidden" name="pics[][role]" value="${roleCode}">`);
-
-                    // Reset the editing row reference
-                    $("#save-pic").removeData("editingRow");
+                        // Update existing row
+                        editingRow.find("td:eq(0)").html(
+                            `${userName} <input type="hidden" name="pics[][user_id]" value="${userId}">`);
+                        editingRow.find("td:eq(1)").html(
+                            `${roleName} <input type="hidden" name="pics[][role]" value="${roleCode}">`);
+                        // Reset the editing row reference
+                        $("#save-pic").removeData("editingRow");
                 } else {
-                    // Add new row (same as before)
+                    // Add new row
                     const newRow = `
                         <tr data-user-id="${userId}" data-role-code="${roleCode}">
                             <td>${userName} <input type="hidden" name="pics[${picIndex}][user_id]" value="${userId}"></td>
@@ -391,7 +390,6 @@
                     picTable.append(newRow);
                     picIndex++;
                 }
-
                 picModal.hide();
             });
 

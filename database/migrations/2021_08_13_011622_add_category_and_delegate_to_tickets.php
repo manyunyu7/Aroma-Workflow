@@ -26,10 +26,16 @@ class AddCategoryAndDelegateToTickets extends Migration
      *
      * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::table('tickets', function (Blueprint $table) {
-            //
+            // Drop foreign key constraints first
+            $table->dropForeign(['delegate_id']);
+            $table->dropForeign(['category']);
+
+            // Drop the columns
+            $table->dropColumn('delegate_id');
+            $table->dropColumn('category');
         });
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\CatalystHelper;
 use App\Models\JenisAnggaran;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -9,6 +10,7 @@ use App\Models\Workflow;
 use App\Models\WorkflowApproval;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 
 class WorkflowController extends Controller
@@ -16,9 +18,18 @@ class WorkflowController extends Controller
     public function index(Request $request)
     {
         $workflows = Workflow::with(['approvals', 'jenisAnggaran'])->get();
-        $user = Auth::user(); // Get the logged-in user
 
-        $compact = compact('workflows', 'user');
+        foreach ($workflows as $workflow) {
+            foreach ($workflow->approvals as $approval) {
+                $userDetail = getDetailNaker($approval->user_id);
+                $approval->user_detail = $userDetail['name'] ?? '-'; // Store only the name, not the whole array
+            }
+        }
+
+        $user = Auth::user();
+        $userDetail = getDetailNaker($user->user_id ?? null);
+
+        $compact = compact('workflows', 'user', 'userDetail');
 
         if ($request->dump == true) {
             return $compact;
@@ -43,16 +54,55 @@ class WorkflowController extends Controller
     {
         $search = $request->input('search');
 
-        $users = User::where('name', 'like', "%$search%")
-            ->orderBy('name')
-            ->limit(20) // Limit results to improve performance
-            ->get(['id', 'name']);
+        if (!$search) {
+            return response()->json(['error' => 'Search parameter is required'], 400);
+        }
 
+        // ✅ Step 1: Get Access Token
+        $clientId = env('SEC_FIND_USER_CLIENT_ID');
+        $clientSecret = env('SEC_FIND_USER_CLIENT_SECRET');
+        $accessToken = CatalystHelper::getCatalystAccessToken($clientId, $clientSecret);
+
+        if (!$accessToken) {
+            return response()->json(['error' => 'Failed to retrieve access token'], 500);
+        }
+
+        // ✅ Step 2: Call the Correct API Endpoint
+        $detailEndpoint = env("URL_CATALYST_API") . "employee/personal?param=" . urlencode($search);
+        $response = Http::withToken($accessToken)->post($detailEndpoint);
+
+        // ✅ Step 3: Check Response
+        if ($response->failed() || empty($response->json())) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // Extract the payload from the API response
+        $data = $response->json();
+        if (!isset($data['payload']) || !is_array($data['payload'])) {
+            return response()->json(['error' => 'Invalid API response'], 500);
+        }
+
+        // ✅ Step 4: Map the Payload to the Desired Format
+        $users = collect($data['payload'])->map(function ($user) {
+            // Ensure each user has the required keys
+            if (!isset($user['nik']) || !isset($user['name'])) {
+                return null; // Skip invalid entries
+            }
+
+            return [
+                'id'   => $user['nik'],   // NIK as unique identifier
+                'name' => $user['name'], // Employee Name
+            ];
+        })->filter(); // Remove any null values (invalid entries)
+
+        // ✅ Step 5: Return JSON Response
         return response()->json($users);
     }
 
+
     public function store(Request $request)
     {
+
         $validStatusCodes = collect(\App\Models\Workflow::getStatuses())->pluck('code')->toArray();
 
         $validated = $request->validate([
@@ -66,8 +116,9 @@ class WorkflowController extends Controller
             'justification_form' => 'nullable|string',
             'doc' => 'nullable|file|mimes:pdf|max:2048',
             'pics'               => 'required|array',
-            'pics.*.user_id'     => 'required|exists:users,id',
-            'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
+            'pics.*.user_id'     => 'required',
+            // 'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
+            'pics.*.role'        => ['required'],
         ]);
 
         DB::beginTransaction();

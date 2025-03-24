@@ -12,7 +12,7 @@
                 </li>
                 <li class="list-divider"></li>
 
-                @if (Auth::user()->role == 3)
+                @if (getAuthRole() == 3)
                     <li class="nav-small-cap"><span class="hide-menu">Workflow Management</span></li>
 
                     <li class="sidebar-item">
@@ -68,9 +68,9 @@
                 @endif
 
 
-                @if (Auth::user()->role == 1)
+                @if (getAuthRole() == 1)
 
-                    @if (Auth::user()->role == 1)
+                    @if (getAuthRole() == 1)
                         <li class="nav-small-cap"><span class="hide-menu">Karyawan & User</span></li>
 
                         <li class="sidebar-item active">

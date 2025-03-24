@@ -17,46 +17,82 @@ class HomeController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth');
+        // $this->middleware('auth');
     }
 
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
     public function index()
     {
-        // If User is Karyawan
-        if (Auth::user()->role == "2") {
-            return redirect("/operator/home");
-        }
-        // If User is User Biasa / Pengirim Ticket
-        if (Auth::user()->role == "3") {
-            return redirect("/user/home");
-        }
-        // If User is User Admin
-        if (Auth::user()->role == "1") {
-            return redirect("/admin/home");
+
+        // Check if user is logged in via SSO session
+        if (session()->has('sso_user_id')) {
+            $role = session('sso_role'); // Get role from session
+
+            // Redirect based on role
+            if ($role == "2") {
+                return redirect("/operator/home");
+            }
+            if ($role == "3") {
+                return redirect("/user/home");
+            }
+            if ($role == "1") {
+                return redirect("/admin/home");
+            }
+
+            return view('home.index');
         }
 
+        // Check if user is logged in via Laravel Auth (Local Admin)
+        if (Auth::check()) {
+            $role = Auth::user()->role; // Get role from database
 
-        return view('home.index');
+            if ($role == "2") {
+                return redirect("/operator/home");
+            }
+            if ($role == "3") {
+                return redirect("/user/home");
+            }
+            if ($role == "1") {
+                return redirect("/admin/home");
+            }
+
+            return view('home.index');
+        }
+
+        // If no session or authentication, redirect to login
+        return redirect('/login')->withErrors(['error' => 'SSO : User not found from SSO NAME']);
     }
 
     public function homeUser()
     {
-        $auth = Auth::user()->id;
-        $totalTicket = TicketModel::all()->where('sender_id', '=', $auth)->count();
-        $totalTicketPending = TicketModel::where('sender_id', '=', $auth)->where('status', '=', '3')->count();
-        $totalTicketSolved = TicketModel::where('sender_id', '=', $auth)->where('status', '=', '1')->count();
-        $totalTicketProgress = TicketModel::where('sender_id', '=', $auth)->where('status', '=', '2')->count();
-        $totalTicketCanceled = TicketModel::where('sender_id', '=', $auth)->where('status', '=', 99)->count();
+        // Determine the authenticated user ID
+        if (session()->has('sso_user_id')) {
+            $authId = session('sso_user_id'); // Get user ID from SSO session
+        } elseif (Auth::check()) {
+            $authId = Auth::user()->id; // Get user ID from local database
+        } else {
+            return redirect('/login')->withErrors(['error' => 'Please log in first']);
+        }
 
-        $tickets =  TicketModel::where('sender_id', '=', $auth)->where('status','<>',99)->get();
-        return view('home.user')
-            ->with(compact('totalTicket','totalTicketCanceled', 'totalTicketPending', 'totalTicketSolved', 'totalTicketProgress', 'tickets'));
+        // Fetch ticket data based on the authenticated user
+        $totalTicket = TicketModel::where('sender_id', '=', $authId)->count();
+        $totalTicketPending = TicketModel::where('sender_id', '=', $authId)->where('status', '=', '3')->count();
+        $totalTicketSolved = TicketModel::where('sender_id', '=', $authId)->where('status', '=', '1')->count();
+        $totalTicketProgress = TicketModel::where('sender_id', '=', $authId)->where('status', '=', '2')->count();
+        $totalTicketCanceled = TicketModel::where('sender_id', '=', $authId)->where('status', 99)->count();
+
+        $tickets = TicketModel::where('sender_id', '=', $authId)->where('status', '<>', 99)->get();
+
+        return view('home.user')->with(compact(
+            'totalTicket',
+            'totalTicketCanceled',
+            'totalTicketPending',
+            'totalTicketSolved',
+            'totalTicketProgress',
+            'tickets'
+        ));
     }
+
+
     public function homeAdmin()
     {
         $totalTicket = TicketModel::all()->count();
@@ -74,11 +110,11 @@ class HomeController extends Controller
         $totalTicket6 = TicketModel::where('category', '=', '6')->count();
 
         $totalUser = User::all()->count();
-        $totalUserOperator = User::all()->where('role','=','2')->count();
-        $totalUserAdmin = User::all()->where('role','=','1')->count();
-        $totalUserUser = User::all()->where('role','=','3')->count();
+        $totalUserOperator = User::all()->where('role', '=', '2')->count();
+        $totalUserAdmin = User::all()->where('role', '=', '1')->count();
+        $totalUserUser = User::all()->where('role', '=', '3')->count();
 
-        $discuss = Discussion::where('type','=',null)->limit(3)->get();
+        $discuss = Discussion::where('type', '=', null)->limit(3)->get();
 
         $tickets = TicketModel::all();
 

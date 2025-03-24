@@ -11,9 +11,11 @@ use App\Http\Controllers\{
     EmailController,
     CategoryController,
     JenisAnggaranController,
+    MasterKaryawanController,
     WorkflowController
 };
 use App\Http\Controllers\User\TicketController;
+use App\Http\Middleware\SsoGate;
 
 Route::view('/', 'welcome');
 Route::redirect('/', '/login');
@@ -46,6 +48,10 @@ Route::get('/user/home', [HomeController::class, 'homeUser']);
 Route::post('/user/regis', [RegistrasiController::class, 'store']);
 
 
+Route::get('hehe',[MasterKaryawanController::class, 'getAllKaryawan'])->middleware(SsoGate::class);
+Route::get('hihi',[MasterKaryawanController::class, 'detailKaryawan'])->middleware(SsoGate::class);
+
+
 Route::prefix('workflows')->name('workflows.')->group(function () {
     Route::get('/', [WorkflowController::class, 'index'])->name('index'); // List workflows
     Route::get('/create', [WorkflowController::class, 'create'])->name('create'); // Create form
@@ -64,7 +70,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 
     Route::resource('jenis-anggaran', JenisAnggaranController::class);
-    Route::get('home', [HomeController::class, 'homeAdmin']);
+    Route::get('home', [HomeController::class, 'index']);
     Route::get('karyawan/tambah', [HomeController::class, 'homeAdmin']);
 
     // Ticket Management

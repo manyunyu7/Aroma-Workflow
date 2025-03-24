@@ -95,7 +95,7 @@
                             <img width="150px" height="150px"
                                 src="{{ URL::to('/bootstrap_ui/') }}/assets/images/big_logo.png" alt="wrapkit">
                         </div>
-                        <h3 class="text-center">Purchase Justification Approval</h3>
+                        <h3 class="text-center">Just One</h3>
 
                         @include('main.components.message')
 

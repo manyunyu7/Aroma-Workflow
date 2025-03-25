@@ -63,6 +63,7 @@ Route::prefix('workflows')->name('workflows.')->group(function () {
 });
 
 Route::get('meta/find-users', [WorkflowController::class, 'findUsers']);
+Route::get('meta/fetch-jabatan',[WorkflowController::class, 'fetchJabatan']);
 
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {

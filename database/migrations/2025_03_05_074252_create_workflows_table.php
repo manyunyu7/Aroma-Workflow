@@ -16,6 +16,17 @@ return new class extends Migration {
             $table->decimal('total_nilai', 15, 2);
             $table->date('waktu_penggunaan');
             $table->text('account')->nullable();
+            $table->text('justification_form')->nullable();
+            $table->text('cost_center')->nullable();
+
+            // Add status column with UPPERCASE values
+            $table->enum('status', [
+                'DRAFT_CREATOR',
+                'DRAFT_REVIEWER',
+                'WAITING_APPROVAL',
+                'DIGITAL_SIGNING',
+                'COMPLETED'
+            ])->default('DRAFT_CREATOR');
             $table->timestamps();
         });
     }

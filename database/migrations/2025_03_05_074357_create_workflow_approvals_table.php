@@ -16,9 +16,15 @@ return new class extends Migration
             $table->foreignId('workflow_id')->constrained('workflows')->onDelete('cascade');
             $table->text('user_id');
             $table->string('role'); // Dibuat Oleh, Diperiksa Oleh, Disetujui Oleh
-            $table->string('status')->default('pending'); // pending, approved, rejected
-            $table->text('comments')->nullable();
+            $table->text('notes')->nullable();
             $table->text('attachment')->nullable(); // File upload
+            $table->unsignedInteger('sequence')->default(1); // Order of approval
+            $table->integer('is_active')->default(0); // Level of approval
+            $table->integer('digital_signature')->default(0)->nullable(); // Level of approval
+            $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED', 'REVISED', 'CANCELLED'])->default('PENDING');
+            $table->timestamp('approved_at')->nullable();
+            $table->timestamp('rejected_at')->nullable();
+            $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
         });
     }

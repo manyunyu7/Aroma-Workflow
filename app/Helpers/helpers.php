@@ -40,6 +40,19 @@ if (!function_exists('getAuthId')) {
     }
 }
 
+if (!function_exists('getAuthNik')) {
+    function getAuthNik()
+    {
+        if (Auth::check()) {
+            return Auth::user()->id; // Local DB user
+        } elseif (session()->has('sso_role')) {
+            return session('sso_nik'); // SSO user
+        }
+        return 'Guest';
+    }
+}
+
+
 
 if (!function_exists('getAuthName')) {
     function getAuthName()

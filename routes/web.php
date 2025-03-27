@@ -48,8 +48,8 @@ Route::get('/user/home', [HomeController::class, 'homeUser']);
 Route::post('/user/regis', [RegistrasiController::class, 'store']);
 
 
-Route::get('hehe',[MasterKaryawanController::class, 'getAllKaryawan'])->middleware(SsoGate::class);
-Route::get('hihi',[MasterKaryawanController::class, 'detailKaryawan'])->middleware(SsoGate::class);
+Route::get('hehe',[MasterKaryawanController::class, 'getAllKaryawan']);
+Route::get('hihi',[MasterKaryawanController::class, 'detailKaryawan']);
 
 
 Route::prefix('workflows')->name('workflows.')->group(function () {

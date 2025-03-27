@@ -50,6 +50,23 @@ class WorkflowController extends Controller
         return view('workflows.create', compact('jenisAnggaran', 'user'));
     }
 
+    public function fetchJabatan(Request $request)
+    {
+        $nik = $request->nik;
+
+        if (!$nik) {
+            return response()->json(['success' => false, 'message' => 'NIK is required']);
+        }
+
+        $detail = getDetailNaker($nik);
+
+        if ($detail && isset($detail['nama_posisi'])) {
+            return response()->json(['success' => true, 'nama_posisi' => $detail['nama_posisi']]);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Position not found']);
+    }
+
     public function findUsers(Request $request)
     {
         $search = $request->input('search');
@@ -108,6 +125,7 @@ class WorkflowController extends Controller
         $validated = $request->validate([
             'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan',
             'unit_kerja'         => 'required|string',
+            'cost_center'         => 'required|string',
             'nama_kegiatan'      => 'required|string',
             'jenis_anggaran'     => 'required|string',
             'total_nilai'        => 'required|numeric|min:0',
@@ -117,6 +135,8 @@ class WorkflowController extends Controller
             'doc' => 'nullable|file|mimes:pdf|max:2048',
             'pics'               => 'required|array',
             'pics.*.user_id'     => 'required',
+            'pics.*.notes'     => 'nullable|string',
+            'pics.*.digital_signature'     => 'nullable|string',
             // 'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
             'pics.*.role'        => ['required'],
         ]);
@@ -134,9 +154,11 @@ class WorkflowController extends Controller
                 foreach ($request->pics as $pic) {
                     // First, create the WorkflowApproval record
                     $approval = WorkflowApproval::create([
-                        'workflow_id' => $workflow->id,
-                        'user_id'     => $pic['user_id'],
-                        'role'        => $pic['role'],
+                        'workflow_id'        => $workflow->id,
+                        'user_id'            => $pic['user_id'] ?? null,
+                        'role'               => $pic['role'] ?? null,
+                        'digital_signature'  => $pic['digital_signature'] ?? null,
+                        'notes'              => $pic['notes'] ?? null,
                     ]);
 
 
@@ -150,13 +172,21 @@ class WorkflowController extends Controller
                         $uniqueName = $originalName . '_' . time() . '.' . $extension;
 
                         // Create directory path with workflow ID
-                        $directory = "documents/{$workflow->id}";
+                        $directory = public_path("documents/{$workflow->id}");
 
-                        // Store file
-                        $path = $file->storeAs($directory, $uniqueName, 'public');
+                        // Ensure the directory exists
+                        if (!file_exists($directory)) {
+                            mkdir($directory, 0777, true);
+                        }
+
+                        // Move file to public directory
+                        $file->move($directory, $uniqueName);
+
+                        // Store the relative path
+                        $relativePath = "documents/{$workflow->id}/{$uniqueName}";
 
                         // Update the first approval with file path
-                        $approval->update(['attachment' => $path]);
+                        $approval->update(['attachment' => $relativePath]);
                     }
 
                     $index++; // Increment index
@@ -182,13 +212,33 @@ class WorkflowController extends Controller
 
 
 
-    public function show(Workflow $workflow)
+    public function show(Request $request, Workflow $workflow)
     {
-        return view('workflows.show', compact('workflow'));
+
+        $workflowApproval = WorkflowApproval::where('workflow_id', $workflow->id)
+            ->orderBy('sequence', 'asc')
+            ->get();
+
+
+        // Select where is not deleted (soft) and is_show = 1
+        $jenisAnggaran = JenisAnggaran::whereNull('deleted_at')
+            ->where('is_show', 1)
+            ->get();
+
+
+        $compact = compact('workflow', 'jenisAnggaran', 'workflowApproval');
+
+        // only on .env development
+        if ($request->dump == true) {
+            return $compact;
+        }
+
+        return view('workflows.show', $compact);
     }
 
     public function edit(Workflow $workflow)
     {
+
         return view('workflows.edit', compact('workflow'));
     }
 

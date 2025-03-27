@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Workflow extends Model
 {
@@ -16,12 +17,15 @@ class Workflow extends Model
         'nama_kegiatan',
         'jenis_anggaran',
         'total_nilai',
+        'cost_center',
         'waktu_penggunaan',
         'account',
         'justification_form',
+        'status', // Ditambahkan agar bisa diisi massal
+        'created_by', // Ditambahkan agar bisa diisi massal
     ];
 
-     /**
+    /**
      * Relasi ke JenisAnggaran (Many-to-One).
      */
     public function jenisAnggaran(): BelongsTo
@@ -33,7 +37,7 @@ class Workflow extends Model
     /**
      * Get the approvals associated with the workflow.
      */
-    public function approvals()
+    public function approvals(): HasMany
     {
         return $this->hasMany(WorkflowApproval::class);
     }

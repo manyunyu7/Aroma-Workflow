@@ -105,9 +105,9 @@
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="form-group">
-                                        <label class="text-dark" for="uname">Email</label>
+                                        <label class="text-dark" for="uname">NIK</label>
                                         <input class="form-control  @error('uname') is-invalid @enderror" id="uname"
-                                            name="uname" type="text" placeholder="Kontak">
+                                            name="uname" type="text" placeholder="NIK">
                                     </div>
                                 </div>
                                 <div class="col-lg-12">
@@ -125,10 +125,10 @@
                                 <div class="col-lg-12 text-center">
                                     <button type="submit" class="btn btn-block btn-dark">Sign In</button>
                                 </div>
-                                <div class="col-lg-12 text-center mt-5">
+                                {{-- <div class="col-lg-12 text-center mt-5">
                                      © {{config('app.name')}} {{ \Carbon\Carbon::now()->year }} <br>
                                     <a href="{{ url('/registrasi') }}"><small>Klik Disini Untuk Pendaftaran</small></a>
-                                </div>
+                                </div> --}}
                             </div>
                         </form>
                     </div>

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WorkflowApproval extends Model
 {
@@ -14,23 +16,29 @@ class WorkflowApproval extends Model
         'user_id',
         'role', // Dibuat Oleh, Diperiksa Oleh, Disetujui Oleh
         'status', // Pending, Approved, Rejected
-        'comments',
+        'notes',
         'attachment',
+        'digital_signature',
+        'sequence', // Urutan approval
+        'is_active', // Level approval
+        'approved_at',
+        'rejected_at',
+        'updated_by',
     ];
 
     /**
      * Get the workflow that owns this approval.
      */
-    public function workflow()
+    public function workflow(): BelongsTo
     {
         return $this->belongsTo(Workflow::class);
     }
 
     /**
-     * Get the user assigned to this approval.
+     * Get the user who last updated this approval.
      */
-    public function user()
+    public function updatedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

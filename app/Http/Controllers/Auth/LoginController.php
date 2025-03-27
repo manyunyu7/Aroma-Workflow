@@ -16,12 +16,6 @@ class LoginController extends Controller
 
     protected $redirectTo = '/home';
 
-    public function __construct()
-    {
-        // No need for $this->middleware() here
-    }
-
-
     public function checkLogin(Request $request)
     {
         $this->validate($request, [
@@ -32,33 +26,38 @@ class LoginController extends Controller
         $uname = $request->uname;
         $password = $request->password;
 
-        // 🔹 CASE 2: Check if input is a NIK (Admin or Employee Login)
+        // 🔹 CASE 1: If input is an email, login with email & password
+        if (filter_var($uname, FILTER_VALIDATE_EMAIL)) {
+            return $this->loginWithLocalDB($uname, $password, 'email');
+        }
+
+        // 🔹 CASE 2: Check if input is a NIK (must be numeric)
         if (!is_numeric($uname)) {
             return redirect('login')->withErrors(['error' => 'Invalid username format']);
         }
 
-        // ✅ Step 1: Check if NIK exists in the local DB
+        // ✅ Check if NIK exists in the local DB
         $user = User::where('nik', $uname)->first();
         if ($user) {
-            return $this->loginWithLocalDB($uname, $password);
+            return $this->loginWithLocalDB($uname, $password, 'nik');
         }
 
-        // ✅ Step 2: Authenticate via SSO if NIK is not in local DB
+        // ✅ If NIK not found, attempt SSO login
         return $this->loginWithSSO($uname, $password);
     }
 
     /**
      * 🔹 Handle login with Local DB (Admins & Employees in DB)
      */
-    private function loginWithLocalDB($uname, $password)
+    private function loginWithLocalDB($uname, $password, $field)
     {
-        if (Auth::attempt(['nik' => $uname, 'password' => $password])) {
+        if (Auth::attempt([$field => $uname, 'password' => $password])) {
             $user = Auth::user();
             session([
                 'user_id' => $user->id,
                 'name' => $user->name,
-                'role' => $user->role, // Could be "admin" or "employee"
-                'auth_source' => 'local' // Local DB login
+                'role' => $user->role,
+                'auth_source' => 'local'
             ]);
             return redirect()->intended('/home');
         }
@@ -75,7 +74,7 @@ class LoginController extends Controller
             return redirect('login')->withErrors(['error' => 'SSO : Invalid Password']);
         }
 
-        // ✅ Step 1: Get access token
+        // ✅ Get access token
         $clientId = env('SEC_USER_DETAIL_CLIENT_ID');
         $clientSecret = env('SEC_USER_DETAIL_CLIENT_SECRET');
         $accessToken = CatalystHelper::getCatalystAccessToken($clientId, $clientSecret);
@@ -84,7 +83,7 @@ class LoginController extends Controller
             return redirect('login')->withErrors(['error' => 'SSO : Failed to retrieve access token']);
         }
 
-        // ✅ Step 2: Get user details from SSO API
+        // ✅ Fetch user details from SSO API
         $detailEndpoint = env("URL_CATALYST_API")."employee/detail";
         $detailResponse = Http::withToken($accessToken)->post($detailEndpoint, ['nik' => $nik]);
 
@@ -92,20 +91,16 @@ class LoginController extends Controller
             return redirect('login')->withErrors(['error' => 'SSO : User not found from SSO NAME']);
         }
 
-        $name = $detailResponse['name'];
         session()->put([
-            'sso_user_id'    => $nik,  // Unique identifier (e.g., NIK)
-            'sso_nik'        => $nik,  // Employee ID (NIK)
-            'sso_name'       => $name, // Full name
-            // 'sso_email'      => $email, // Contact email
-            'sso_role'       => '3', // User role (e.g., employee, admin)
-            'sso_auth_source'=> 'sso', // Differentiates SSO vs local login
-            'sso_logged_in_at' => now()->toDateTimeString(), // Timestamp of login
-            'sso_session_id' => session()->getId(), // Unique session ID
+            'sso_user_id'    => $nik,
+            'sso_nik'        => $nik,
+            'sso_name'       => $detailResponse['name'],
+            'sso_role'       => '3',
+            'sso_auth_source'=> 'sso',
+            'sso_logged_in_at' => now()->toDateTimeString(),
+            'sso_session_id' => session()->getId(),
         ]);
+
         return redirect('/home');
     }
-
-
-
 }

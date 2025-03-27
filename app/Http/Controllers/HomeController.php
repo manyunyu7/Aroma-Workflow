@@ -22,44 +22,54 @@ class HomeController extends Controller
 
     public function index()
     {
-
         // Check if user is logged in via SSO session
         if (session()->has('sso_user_id')) {
-            $role = session('sso_role'); // Get role from session
+            $role = session('sso_role');
 
-            // Redirect based on role
-            if ($role == "2") {
-                return redirect("/operator/home");
+            // Avoid infinite redirects
+            if (request()->is('admin/home') && $role == "1") {
+                return $this->homeAdmin();
             }
-            if ($role == "3") {
-                return redirect("/user/home");
+            if (request()->is('operator/home') && $role == "2") {
+                return $this->homeOperator();
             }
-            if ($role == "1") {
-                return redirect("/admin/home");
+            if (request()->is('user/home') && $role == "3") {
+                return $this->homeUser();
             }
+
+            // Redirect if not already in the correct route
+            if ($role == "1") return redirect("/admin/home");
+            if ($role == "2") return redirect("/operator/home");
+            if ($role == "3") return redirect("/user/home");
 
             return view('home.index');
         }
 
         // Check if user is logged in via Laravel Auth (Local Admin)
         if (Auth::check()) {
-            $role = Auth::user()->role; // Get role from database
+            $role = Auth::user()->role;
 
-            if ($role == "2") {
-                return redirect("/operator/home");
+            // Avoid infinite redirects
+            if (request()->is('admin/home') && $role == "1") {
+                return $this->homeAdmin();
             }
-            if ($role == "3") {
-                return redirect("/user/home");
+            if (request()->is('operator/home') && $role == "2") {
+                return $this->homeOperator();
             }
-            if ($role == "1") {
-                return redirect("/admin/home");
+            if (request()->is('user/home') && $role == "3") {
+                return $this->homeUser();
             }
+
+            // Redirect if not already in the correct route
+            if ($role == "1") return redirect("/admin/home");
+            if ($role == "2") return redirect("/operator/home");
+            if ($role == "3") return redirect("/user/home");
 
             return view('home.index');
         }
 
         // If no session or authentication, redirect to login
-        return redirect('/login')->withErrors(['error' => 'SSO : User not found from SSO NAME']);
+        return redirect('/login')->withErrors(['error' => 'Please log in first']);
     }
 
     public function homeUser()

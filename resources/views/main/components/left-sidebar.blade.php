@@ -69,45 +69,41 @@
 
 
                 @if (getAuthRole() == 1)
+                    <li class="nav-small-cap"><span class="hide-menu">Karyawan & User</span></li>
 
-                    @if (getAuthRole() == 1)
-                        <li class="nav-small-cap"><span class="hide-menu">Karyawan & User</span></li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ URL('karyawan/tambah') }}" aria-expanded="false">
+                            <i data-feather="tag" class="feather-icon"></i>
+                            <span class="hide-menu">Tambah User
+                            </span>
+                        </a>
+                    </li>
 
-                        <li class="sidebar-item active">
-                            <a class="sidebar-link" href="{{ URL('karyawan/tambah') }}" aria-expanded="false">
-                                <i data-feather="tag" class="feather-icon"></i>
-                                <span class="hide-menu">Tambah User
-                                </span>
-                            </a>
-                        </li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ URL('karyawan/manage') }}" aria-expanded="false">
+                            <i data-feather="tag" class="feather-icon"></i>
+                            <span class="hide-menu">Manage User
+                            </span>
+                        </a>
+                    </li>
 
-                        <li class="sidebar-item active">
-                            <a class="sidebar-link" href="{{ URL('karyawan/manage') }}" aria-expanded="false">
-                                <i data-feather="tag" class="feather-icon"></i>
-                                <span class="hide-menu">Manage User
-                                </span>
-                            </a>
-                        </li>
+                    <li class="nav-small-cap"><span class="hide-menu">Anggaran</span></li>
 
-                        <li class="nav-small-cap"><span class="hide-menu">Anggaran</span></li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ route('admin.jenis-anggaran.create') }}" aria-expanded="false">
+                            <i data-feather="tag" class="feather-icon"></i>
+                            <span class="hide-menu">Tambah Jenis Anggaran</span>
+                        </a>
+                    </li>
 
-                        <li class="sidebar-item active">
-                            <a class="sidebar-link" href="{{ route('admin.jenis-anggaran.create') }}"
-                                aria-expanded="false">
-                                <i data-feather="tag" class="feather-icon"></i>
-                                <span class="hide-menu">Tambah Jenis Anggaran</span>
-                            </a>
-                        </li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ route('admin.jenis-anggaran.index') }}" aria-expanded="false">
+                            <i data-feather="tag" class="feather-icon"></i>
+                            <span class="hide-menu">Manage Jenis Anggaran</span>
+                        </a>
+                    </li>
 
-                        <li class="sidebar-item active">
-                            <a class="sidebar-link" href="{{ route('admin.jenis-anggaran.index') }}"
-                                aria-expanded="false">
-                                <i data-feather="tag" class="feather-icon"></i>
-                                <span class="hide-menu">Manage Jenis Anggaran</span>
-                            </a>
-                        </li>
-
-                        {{-- <li class="nav-small-cap"><span class="hide-menu">Kategori</span></li>
+                    {{-- <li class="nav-small-cap"><span class="hide-menu">Kategori</span></li>
 
                         <li class="sidebar-item active">
                             <a class="sidebar-link" href="{{ URL('kategori/tambah') }}" aria-expanded="false">
@@ -124,8 +120,27 @@
                                 </span>
                             </a>
                         </li> --}}
-                    @endif
+                @endif
 
+
+                <!-- Add this section to your sidebar.blade.php file inside the admin section -->
+
+                @if (getAuthRole() == 1)
+                    <li class="nav-small-cap"><span class="hide-menu">Master User</span></li>
+
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ route('admin.master-user.index') }}" aria-expanded="false">
+                            <i data-feather="users" class="feather-icon"></i>
+                            <span class="hide-menu">Manage Master User</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ route('admin.master-user.create') }}" aria-expanded="false">
+                            <i data-feather="user-plus" class="feather-icon"></i>
+                            <span class="hide-menu">Add Master User</span>
+                        </a>
+                    </li>
                 @endif
 
 

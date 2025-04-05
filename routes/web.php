@@ -12,6 +12,7 @@ use App\Http\Controllers\{
     CategoryController,
     JenisAnggaranController,
     MasterKaryawanController,
+    MasterUserController,
     WorkflowController
 };
 use App\Http\Controllers\User\TicketController;
@@ -68,7 +69,8 @@ Route::get('meta/fetch-jabatan',[WorkflowController::class, 'fetchJabatan']);
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {
 
-
+    Route::resource('master-user', MasterUserController::class);
+    Route::post('get-user-details', [MasterUserController::class, 'getUserDetailsByNik'])->name('get-user-details');
 
     Route::resource('jenis-anggaran', JenisAnggaranController::class);
     Route::get('home', [HomeController::class, 'index']);

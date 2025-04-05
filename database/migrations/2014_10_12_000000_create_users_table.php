@@ -16,12 +16,19 @@ class CreateUsersTable extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('nip')->unique();
             $table->string('email')->unique();
-            $table->string('nik')->unique()->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('role');  //1 for admin, // 2 for pegawai , // 3 for user
+
+            // Add these fields from master_users
+            $table->string('nik')->nullable()->unique();
+            $table->string('object_id')->nullable();
+            $table->string('unit_kerja')->nullable();
+            $table->string('jabatan')->nullable();
+            $table->enum('status', ['Active', 'Not Active'])->default('Active');
+            $table->string('created_by')->nullable();
+            $table->string('edited_by')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });

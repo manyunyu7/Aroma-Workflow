@@ -5,20 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MasterUserRole extends Model
+class UserRole extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'master_user_id',
+        'user_id',
         'role'
     ];
 
     /**
      * Get the user that owns the role.
      */
-    public function masterUser()
+    public function user()
     {
-        return $this->belongsTo(MasterUser::class, 'master_user_id');
+        return $this->belongsTo(User::class);
     }
 }

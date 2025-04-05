@@ -36,13 +36,7 @@ class LoginController extends Controller
             return redirect('login')->withErrors(['error' => 'Invalid username format']);
         }
 
-        // ✅ Check if NIK exists in the local DB
-        $user = User::where('nik', $uname)->first();
-        if ($user) {
-            return $this->loginWithLocalDB($uname, $password, 'nik');
-        }
 
-        // ✅ If NIK not found, attempt SSO login
         return $this->loginWithSSO($uname, $password);
     }
 
@@ -62,7 +56,7 @@ class LoginController extends Controller
             return redirect()->intended('/home');
         }
 
-        return redirect('login')->withErrors(['error' => 'Username atau Password salah']);
+        return redirect('login')->withErrors(['error' => 'Username atau Password salah (local)']);
     }
 
     /**
@@ -72,6 +66,20 @@ class LoginController extends Controller
     {
         if ($password !== "1") {
             return redirect('login')->withErrors(['error' => 'SSO : Invalid Password']);
+        }
+
+        //check if user exist in our DB
+        $user = User::where('nik', $nik)->first();
+        if (!$user) {
+            return redirect('login')->withErrors(['error' => 'Akun tidak ditemukan pada sistem kami']);
+        }
+
+        if($user->status == "Not Active") {
+            return redirect('login')->withErrors(['error' => 'Akun tidak aktif']);
+        }
+
+        if($user) {
+            Auth::login($user);
         }
 
         // ✅ Get access token
@@ -95,7 +103,6 @@ class LoginController extends Controller
             'sso_user_id'    => $nik,
             'sso_nik'        => $nik,
             'sso_name'       => $detailResponse['name'],
-            'sso_role'       => '3',
             'sso_auth_source'=> 'sso',
             'sso_logged_in_at' => now()->toDateTimeString(),
             'sso_session_id' => session()->getId(),

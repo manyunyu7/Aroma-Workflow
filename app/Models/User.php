@@ -21,6 +21,13 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'nik',
+        'object_id',
+        'unit_kerja',
+        'jabatan',
+        'status',
+        'created_by',
+        'edited_by'
     ];
 
     /**
@@ -44,5 +51,13 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the roles for the user.
+     */
+    public function roles()
+    {
+        return $this->hasMany(UserRole::class);
     }
 }

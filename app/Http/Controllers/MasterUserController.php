@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MasterUser;
-use App\Models\MasterUserRole;
+use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +15,7 @@ class MasterUserController extends Controller
      */
     public function index()
     {
-        $masterUsers = MasterUser::with('roles')->get();
+        $masterUsers = User::with('roles')->get();
         return view('admin.master-user.index', compact('masterUsers'));
     }
 
@@ -33,7 +33,7 @@ class MasterUserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'nik' => 'required|unique:master_users,nik',
+            'nik' => 'required|unique:users,nik',
             'roles' => 'required|array|min:1',
             'roles.*' => 'required|string',
             'status' => 'required|in:Active,Not Active',
@@ -57,11 +57,13 @@ class MasterUserController extends Controller
                     ->withInput();
             }
 
-            // Create the master user
-            $masterUser = MasterUser::create([
+            // Create the user
+            $user = User::create([
                 'nik' => $request->nik,
-                'object_id' => $request->object_id, // Add this line
+                'object_id' => $request->object_id,
                 'name' => $employeeDetails['name'] ?? '',
+                'email' => $request->nik . '@example.com', // Create a placeholder email
+                'password' => bcrypt('password'), // Set a default password
                 'unit_kerja' => $employeeDetails['unit'] ?? '',
                 'jabatan' => $employeeDetails['nama_posisi'] ?? '',
                 'status' => $request->status,
@@ -70,8 +72,8 @@ class MasterUserController extends Controller
 
             // Add roles
             foreach ($request->roles as $role) {
-                MasterUserRole::create([
-                    'master_user_id' => $masterUser->id,
+                UserRole::create([
+                    'user_id' => $user->id,
                     'role' => $role
                 ]);
             }
@@ -91,7 +93,7 @@ class MasterUserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(MasterUser $masterUser)
+    public function show(User $masterUser)
     {
         $masterUser->load('roles');
         return view('admin.master-user.show', compact('masterUser'));
@@ -100,7 +102,7 @@ class MasterUserController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(MasterUser $masterUser)
+    public function edit(User $masterUser)
     {
         $masterUser->load('roles');
         return view('admin.master-user.edit', compact('masterUser'));
@@ -109,7 +111,7 @@ class MasterUserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, MasterUser $masterUser)
+    public function update(Request $request, User $masterUser)
     {
         $validator = Validator::make($request->all(), [
             'roles' => 'required|array|min:1',
@@ -137,8 +139,8 @@ class MasterUserController extends Controller
 
             // Add new roles
             foreach ($request->roles as $role) {
-                MasterUserRole::create([
-                    'master_user_id' => $masterUser->id,
+                UserRole::create([
+                    'user_id' => $masterUser->id,
                     'role' => $role
                 ]);
             }
@@ -158,7 +160,7 @@ class MasterUserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(MasterUser $masterUser)
+    public function destroy(User $masterUser)
     {
         try {
             $masterUser->delete();
@@ -188,7 +190,7 @@ class MasterUserController extends Controller
                 'name' => $userDetails['name'] ?? '',
                 'unit_kerja' => $userDetails['unit'] ?? '',
                 'jabatan' => $userDetails['nama_posisi'] ?? '',
-                'object_id' => $userDetails['object_id'] ?? null, // Add this line
+                'object_id' => $userDetails['object_id'] ?? null,
             ]
         ]);
     }

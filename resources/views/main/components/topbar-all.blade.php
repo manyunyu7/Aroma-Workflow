@@ -12,8 +12,8 @@
                 <a href="index.html">
                     <b class="logo-icon">
                         <!-- Dark Logo icon -->
-                        <img height="50px" src="{{ URL::to('bootstrap_ui') }}/assets/images/akses_small.png" alt="homepage"
-                            class="dark-logo" />
+                        <img height="50px" src="{{ URL::to('bootstrap_ui') }}/assets/images/akses_small.png"
+                            alt="homepage" class="dark-logo" />
                     </b>
                     <!--End Logo icon -->
                     <!-- Logo text -->
@@ -170,18 +170,34 @@
                         aria-haspopup="true" aria-expanded="false">
                         <img src="{{ URL::to('bootstrap_ui') }}/assets/images/users/profile-pic.jpg" alt="user"
                             class="rounded-circle" width="40">
-                        <span class="ml-2 d-none d-lg-inline-block"><span>Hello,</span> <span
-                                class="text-dark">  ({{ getAuthName() }})  ({{ getAuthRole() }})</span> <i
-                                data-feather="chevron-down" class="svg-icon"></i></span>
+                        <span class="ml-2 d-none d-lg-inline-block"><span>Hello,</span> <span class="text-dark">
+                                ({{ getAuthName() }})</span> <i data-feather="chevron-down" class="svg-icon"></i></span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-right user-dd animated flipInY">
-                        <a class="dropdown-item" href="{{ route('logout') }}" onclick="event.preventDefault();
+                        @php
+                            $roles = getAuthRole();
+                        @endphp
+
+                        @if (!empty($roles))
+                            <div class="px-3 py-1">
+                                @foreach ($roles as $role)
+                                    <span class="badge badge-light mr-1 mb-1">
+                                        <i data-feather="check-circle" class="svg-icon mr-1"></i>
+                                        {{ $role }}
+                                    </span>
+                                @endforeach
+                            </div>
+
+                            <div class="dropdown-divider"></div>
+                        @endif
+                        <a class="dropdown-item" href="{{ route('logout') }}"
+                            onclick="event.preventDefault();
                                                          document.getElementById('logout-form').submit();">
                             <i data-feather="power" class="svg-icon mr-2 ml-1"></i>Logout</a>
                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                             @csrf
                         </form>
-                        <div class="dropdown-divider"></div>
+                        {{-- <div class="dropdown-divider"></div> --}}
                     </div>
                 </li>
                 <!-- ============================================================== -->

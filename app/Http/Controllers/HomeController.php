@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Discussion;
 use App\Models\TicketModel;
 use App\Models\User;
+use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,48 +23,41 @@ class HomeController extends Controller
 
     public function index()
     {
-        // Check if user is logged in via SSO session
-        if (session()->has('sso_user_id')) {
-            $role = session('sso_role');
-
-            // Avoid infinite redirects
-            if (request()->is('admin/home') && $role == "1") {
-                return $this->homeAdmin();
-            }
-            if (request()->is('operator/home') && $role == "2") {
-                return $this->homeOperator();
-            }
-            if (request()->is('user/home') && $role == "3") {
-                return $this->homeUser();
-            }
-
-            // Redirect if not already in the correct route
-            if ($role == "1") return redirect("/admin/home");
-            if ($role == "2") return redirect("/operator/home");
-            if ($role == "3") return redirect("/user/home");
-
-            return view('home.index');
-        }
-
         // Check if user is logged in via Laravel Auth (Local Admin)
         if (Auth::check()) {
-            $role = Auth::user()->role;
+            $roles = Auth::user()->roles->pluck('role')->toArray();
 
-            // Avoid infinite redirects
-            if (request()->is('admin/home') && $role == "1") {
-                return $this->homeAdmin();
-            }
-            if (request()->is('operator/home') && $role == "2") {
-                return $this->homeOperator();
-            }
-            if (request()->is('user/home') && $role == "3") {
-                return $this->homeUser();
+            // Check current route and available roles
+            $routeRoleMap = [
+                'admin/home' => ['Admin'],
+                'operator/home' => ['Operator'],
+                'user/home' => ['Creator', 'User']
+            ];
+
+            $redirectRouteMap = [
+                'Admin' => '/admin/home',
+                'Operator' => '/operator/home',
+                'User' => '/user/home',
+                'Creator' => '/user/home'
+            ];
+
+            // Check if current route matches any of the user's roles
+            foreach ($routeRoleMap as $route => $allowedRoles) {
+                if (request()->is($route)) {
+                    $hasMatchingRole = !empty(array_intersect($roles, $allowedRoles));
+                    if ($hasMatchingRole) {
+                        $method = 'home' . ucfirst(strtolower(explode('/', $route)[0]));
+                        return $this->{$method}();
+                    }
+                }
             }
 
-            // Redirect if not already in the correct route
-            if ($role == "1") return redirect("/admin/home");
-            if ($role == "2") return redirect("/operator/home");
-            if ($role == "3") return redirect("/user/home");
+            // Redirect to appropriate route based on roles
+            foreach ($redirectRouteMap as $role => $redirectRoute) {
+                if (in_array($role, $roles)) {
+                    return redirect($redirectRoute);
+                }
+            }
 
             return view('home.index');
         }

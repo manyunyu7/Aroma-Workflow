@@ -4,6 +4,25 @@ use App\Helpers\CatalystHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
+
+/**
+ * Check if the authenticated user has a specific role
+ *
+ * @param string $roleName
+ * @return bool
+ */
+function hasRole($roleName)
+{
+    $user = Auth::user();
+    if (!$user) {
+        return false;
+    }
+
+
+    return $user->roles()->where('role', $roleName)->exists();
+}
+
+
 if (!function_exists('format_currency')) {
     function format_currency($amount, $currency = 'USD') {
         return "$currency " . number_format($amount, 2);
@@ -17,14 +36,14 @@ if (!function_exists('slugify')) {
 }
 
 if (!function_exists('getAuthRole')) {
-    function getAuthRole()
-    {
-        if (Auth::check()) {
-            return Auth::user()->role; // Local DB user
-        } elseif (session()->has('sso_role')) {
-            return session('sso_role'); // SSO user
-        }
-        return 'Guest';
+    function getAuthRole() {
+        $user = Auth::user();
+        if (!$user) return [];
+
+        $roles = $user->roles;
+
+        // Map roles to an array of role names
+        return $roles->pluck('role')->toArray();
     }
 }
 
@@ -33,8 +52,6 @@ if (!function_exists('getAuthId')) {
     {
         if (Auth::check()) {
             return Auth::user()->id; // Local DB user
-        } elseif (session()->has('sso_role')) {
-            return session('sso_user_id'); // SSO user
         }
         return 'Guest';
     }
@@ -45,8 +62,6 @@ if (!function_exists('getAuthNik')) {
     {
         if (Auth::check()) {
             return Auth::user()->id; // Local DB user
-        } elseif (session()->has('sso_role')) {
-            return session('sso_nik'); // SSO user
         }
         return 'Guest';
     }
@@ -59,8 +74,6 @@ if (!function_exists('getAuthName')) {
     {
         if (Auth::check()) {
             return Auth::user()->name; // Local DB user
-        } elseif (session()->has('sso_name')) {
-            return session('sso_name'); // SSO user
         }
         return 'Guest';
     }

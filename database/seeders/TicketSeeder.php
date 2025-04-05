@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\JenisAnggaran;
 use App\Models\TicketCategory;
 use App\Models\User;
+use App\Models\UserRole;
 use Exception;
 use Illuminate\Database\Seeder;
 use Faker\Factory as Faker;
@@ -22,37 +23,43 @@ class TicketSeeder extends Seeder
     {
         $faker = Faker::create("id_ID");
 
-
         // Predefined users
-        $this->addUser("Admin", "admin@email.com", "password", "1", "0000000000000001");
-        $this->addUser("user", "user@gmail.com", "password", "3", "0000000000000002");
-        $this->addUser("staff", "staff@gmail.com", "password", "2", "0000000000000003");
-
+        $this->addUser("Admin", "admin@email.com", "password", "Admin", "20970970");
+        $this->addUser("user", "user@gmail.com", "password", "Creator", "22000022");
+        $this->addUser("staff", "staff@gmail.com", "password", "Acknowledger", "0000000000000003");
 
         Auth::loginUsingId(1);
         // Use raw SQL queries to insert JenisAnggaran records
         DB::statement("
-INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
-VALUES (1, 'Capital Expenditure', 1, 1, NOW(), NOW())
-");
+            INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
+            VALUES (1, 'Capital Expenditure', 1, 1, NOW(), NOW())
+            ");
 
         DB::statement("
-INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
-VALUES (2, 'Operational Expenditure', 1, 1, NOW(), NOW())
-");
+            INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
+            VALUES (2, 'Operational Expenditure', 1, 1, NOW(), NOW())
+            ");
 
         DB::statement("
-INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
-VALUES (3, 'Revenue Expenditure', 1, 1, NOW(), NOW())
-");
+            INSERT INTO jenis_anggarans (id, nama, created_by, updated_by, created_at, updated_at)
+            VALUES (3, 'Revenue Expenditure', 1, 1, NOW(), NOW())
+            ");
 
+        // Available roles
+        $roles = [
+            "Creator",
+            "Acknowledger",
+            "Unit Head - Approver",
+            "Reviewer-Maker",
+            "Reviewer-Approver"
+        ];
 
-        // Generate 20,000 users
-        for ($i = 0; $i < 100; $i++) {
+        // Generate 5 users
+        for ($i = 0; $i < 5; $i++) {
             try {
-                $role = $faker->randomElement([2, 3]); // Randomly assign staff (2) or user (3)
-                $nip = $faker->unique()->numerify(str_repeat("#", 16)); // Unique 16-digit NIP
-                $this->addUser($faker->name, $faker->unique()->safeEmail, "password", $role, $nip);
+                $role = $faker->randomElement($roles); // Randomly assign roles
+                $nik = $faker->unique()->numerify(str_repeat("#", 16)); // Unique 16-digit NIK
+                $this->addUser($faker->name, $faker->unique()->safeEmail, "password", $role, $nik);
             } catch (Exception $exception) {
                 continue;
             }
@@ -71,8 +78,6 @@ VALUES (3, 'Revenue Expenditure', 1, 1, NOW(), NOW())
         $this->addCategory("Masalah Aplikasi");
         $this->addCategory("Masalah Lainnya");
 
-
-
         echo "Seeding completed!";
     }
 
@@ -81,14 +86,22 @@ VALUES (3, 'Revenue Expenditure', 1, 1, NOW(), NOW())
         TicketCategory::create(['name' => $name]);
     }
 
-    public function addUser($name, $email, $password, $role, $nip)
+    public function addUser($name, $email, $password, $role, $nik)
     {
-        User::create([
+        // Create the user
+        $user = User::create([
             'name' => $name,
             'email' => $email,
             'password' => bcrypt($password),
-            'role' => $role,
-            'nip' => $nip,
+            'nik' => $nik,
+            'status' => 'Active',
+            'created_by' => 'Seeder',
+        ]);
+
+        // Add role to the user
+        UserRole::create([
+            'user_id' => $user->id,
+            'role' => $role
         ]);
     }
 }

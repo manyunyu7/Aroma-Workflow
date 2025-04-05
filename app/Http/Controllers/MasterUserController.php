@@ -60,6 +60,7 @@ class MasterUserController extends Controller
             // Create the master user
             $masterUser = MasterUser::create([
                 'nik' => $request->nik,
+                'object_id' => $request->object_id, // Add this line
                 'name' => $employeeDetails['name'] ?? '',
                 'unit_kerja' => $employeeDetails['unit'] ?? '',
                 'jabatan' => $employeeDetails['nama_posisi'] ?? '',
@@ -128,6 +129,7 @@ class MasterUserController extends Controller
             // Update user details
             $masterUser->status = $request->status;
             $masterUser->edited_by = getAuthName();
+            $masterUser->object_id = $request->object_id;
             $masterUser->save();
 
             // Remove existing roles
@@ -186,6 +188,7 @@ class MasterUserController extends Controller
                 'name' => $userDetails['name'] ?? '',
                 'unit_kerja' => $userDetails['unit'] ?? '',
                 'jabatan' => $userDetails['nama_posisi'] ?? '',
+                'object_id' => $userDetails['object_id'] ?? null, // Add this line
             ]
         ]);
     }

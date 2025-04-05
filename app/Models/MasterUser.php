@@ -14,6 +14,7 @@ class MasterUser extends Model
         'name',
         'unit_kerja',
         'jabatan',
+        'object_id',
         'status',
         'created_by',
         'edited_by'

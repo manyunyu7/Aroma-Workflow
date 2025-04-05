@@ -80,6 +80,12 @@
                         </div>
 
                         <div class="form-group">
+                            <label>Object ID</label>
+                            <input type="text" class="form-control" id="object_id" name="object_id"
+                                   value="{{ $masterUser->object_id }}" readonly>
+                        </div>
+
+                        <div class="form-group">
                             <label>Created Date</label>
                             <input type="text" class="form-control" value="{{ $masterUser->created_at->format('d-M-Y') }}" readonly>
                         </div>

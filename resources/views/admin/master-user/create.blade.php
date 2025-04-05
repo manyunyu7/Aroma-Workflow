@@ -27,11 +27,13 @@
             background-color: #f0f0f0;
             border-radius: 3px;
         }
+
         .role-badge .remove-role {
             margin-left: 5px;
             cursor: pointer;
             color: red;
         }
+
         #roleOptions div {
             cursor: pointer;
             padding: 5px;
@@ -39,6 +41,7 @@
             background-color: #f8f9fa;
             border-radius: 3px;
         }
+
         #roleOptions div:hover {
             background-color: #e9ecef;
         }
@@ -61,8 +64,8 @@
                         <div class="form-group">
                             <label>NIK</label>
                             <div class="input-group">
-                                <input type="text" class="form-control @error('nik') is-invalid @enderror"
-                                    id="nik" name="nik" value="{{ old('nik') }}" placeholder="Enter NIK">
+                                <input type="text" class="form-control @error('nik') is-invalid @enderror" id="nik"
+                                    name="nik" value="{{ old('nik') }}" placeholder="Enter NIK">
                                 <div class="input-group-append">
                                     <button class="btn btn-primary" type="button" id="checkNikBtn">Check</button>
                                 </div>
@@ -85,6 +88,11 @@
                         <div class="form-group">
                             <label>Jabatan</label>
                             <input type="text" class="form-control" id="jabatan" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Object ID</label>
+                            <input type="text" class="form-control" id="object_id" name="object_id" readonly>
                         </div>
 
                         <div class="form-group">
@@ -111,11 +119,13 @@
                             <label>Status</label>
                             <div class="d-flex">
                                 <div class="form-check mr-3">
-                                    <input type="radio" class="form-check-input" name="status" value="Active" id="statusActive" checked>
+                                    <input type="radio" class="form-check-input" name="status" value="Active"
+                                        id="statusActive" checked>
                                     <label class="form-check-label" for="statusActive">Active</label>
                                 </div>
                                 <div class="form-check">
-                                    <input type="radio" class="form-check-input" name="status" value="Not Active" id="statusNotActive">
+                                    <input type="radio" class="form-check-input" name="status" value="Not Active"
+                                        id="statusNotActive">
                                     <label class="form-check-label" for="statusNotActive">Not Active</label>
                                 </div>
                             </div>
@@ -143,7 +153,8 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Select Role</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
@@ -208,7 +219,9 @@
                 }
 
                 // Show loading
-                $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Checking...');
+                $(this).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Checking...'
+                    );
                 $(this).prop('disabled', true);
 
                 // Make AJAX request to get user details
@@ -224,11 +237,13 @@
                             $('#nama').val(response.data.name);
                             $('#unit_kerja').val(response.data.unit_kerja);
                             $('#jabatan').val(response.data.jabatan);
+                            $('#object_id').val(response.data.object_id); // Add this line
                         } else {
                             alert('User not found');
                             $('#nama').val('');
                             $('#unit_kerja').val('');
                             $('#jabatan').val('');
+                            $('#object_id').val(''); // Clear object_id
                         }
                     },
                     error: function() {

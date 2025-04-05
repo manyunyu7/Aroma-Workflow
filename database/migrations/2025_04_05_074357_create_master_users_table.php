@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('master_users', function (Blueprint $table) {
             $table->id();
             $table->string('nik')->unique();
+            $table->string('object_id')->nullable();
             $table->string('name');
             $table->string('unit_kerja');
             $table->string('jabatan');

@@ -105,7 +105,7 @@
                             <input type="text" class="form-control" value="{{ getAuthName() }}" readonly>
                         </div>
 
-                        <div class="form-group">
+                        {{-- <div class="form-group">
                             <label>Edited Date</label>
                             <input type="text" class="form-control" value="dd-MMM-yyyy" readonly>
                         </div>
@@ -113,7 +113,7 @@
                         <div class="form-group">
                             <label>Edited By</label>
                             <input type="text" class="form-control" value="Xxxxxxxxxxxxxxxx" readonly>
-                        </div>
+                        </div> --}}
 
                         <div class="form-group">
                             <label>Status</label>

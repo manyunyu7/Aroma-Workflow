@@ -83,7 +83,7 @@ class WorkflowController extends Controller
 
         // Search users from our own table
         $users = User::where('status', 'active')
-            ->where(function($query) use ($search) {
+            ->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('nik', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%");
@@ -98,24 +98,36 @@ class WorkflowController extends Controller
         // Get valid status codes from your model
         $validStatusCodes = collect(Workflow::getStatuses())->pluck('code')->toArray();
 
-        $validated = $request->validate([
-            'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan',
-            'unit_kerja'         => 'required|string',
-            'cost_center'        => 'required|string',
-            'nama_kegiatan'      => 'required|string',
-            'jenis_anggaran'     => 'required|string',
-            'total_nilai'        => 'required|numeric|min:0',
-            'waktu_penggunaan'   => 'required|date',
-            'account'            => 'required|string',
-            'pics'               => 'required|array',
-            'pics.*.user_id'     => 'required',
-            'pics.*.notes'       => 'nullable|string',
-            'pics.*.digital_signature' => 'nullable|string',
-            'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
-            'documents'          => 'nullable|array',
-            'documents.*'        => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
-            'is_draft'           => 'nullable|boolean',
-        ]);
+        try {
+            $validated = $request->validate([
+                'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan',
+                'unit_kerja'         => 'required|string',
+                'cost_center'        => 'required|string',
+                'nama_kegiatan'      => 'required|string',
+                'deskripsi_kegiatan' => 'nullable|string', // New field
+                'jenis_anggaran'     => 'required|string',
+                'total_nilai'        => 'required|numeric|min:0',
+                'waktu_penggunaan'   => 'required|date',
+                'account'            => 'required|string',
+                'pics'               => 'required|array',
+                'pics.*.user_id'     => 'required',
+                'pics.*.notes'       => 'nullable|string',
+                'pics.*.digital_signature' => 'nullable|string',
+                'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
+                'documents'          => 'nullable|array',
+                'documents.*'        => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+                'is_draft'           => 'nullable|boolean',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Flash uploaded files to session to maintain them between requests
+            if ($request->hasFile('documents')) {
+                $request->flash();  // This will flash all input including files
+            }
+
+            return back()
+                ->withErrors($e->validator)
+                ->withInput();
+        }
 
         DB::beginTransaction();
         try {
@@ -125,6 +137,7 @@ class WorkflowController extends Controller
                 'unit_kerja' => $validated['unit_kerja'],
                 'cost_center' => $validated['cost_center'],
                 'nama_kegiatan' => $validated['nama_kegiatan'],
+                'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'] ?? null, // New field
                 'jenis_anggaran' => $validated['jenis_anggaran'],
                 'total_nilai' => $validated['total_nilai'],
                 'waktu_penggunaan' => $validated['waktu_penggunaan'],
@@ -138,7 +151,7 @@ class WorkflowController extends Controller
             // Process approvals/PICs
             if ($request->has('pics')) {
                 // Sort PICs by sequence
-                $pics = collect($request->pics)->sortBy(function($pic) {
+                $pics = collect($request->pics)->sortBy(function ($pic) {
                     // Define sequence based on role
                     $roleSequence = [
                         'CREATOR' => 1,
@@ -163,7 +176,6 @@ class WorkflowController extends Controller
                         'notes' => $pic['notes'] ?? null,
                         'sequence' => $index + 1,
                         'is_active' => ($index === 0 || $isCurrentUser) ? 1 : 0,
-                        // 'status' => $isCurrentUser && !$request->input('is_draft', false) ? 'APPROVED' : 'PENDING',
                         'status' => $isCurrentUser && !$request->input('is_draft', false) ? 'PENDING' : 'DRAFT',
                         'approved_at' => $isCurrentUser && !$request->input('is_draft', false) ? now() : null,
                     ]);
@@ -212,6 +224,11 @@ class WorkflowController extends Controller
             return redirect()->route('workflows.index')->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log the error for debugging
+            \Log::error('Workflow creation error: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+
             return back()
                 ->withErrors(['error' => 'Something went wrong: ' . $e->getMessage()])
                 ->withInput();
@@ -337,7 +354,7 @@ class WorkflowController extends Controller
             // Process approvals/PICs
             if ($request->has('pics')) {
                 // Sort PICs by sequence
-                $pics = collect($request->pics)->sortBy(function($pic) {
+                $pics = collect($request->pics)->sortBy(function ($pic) {
                     // Define sequence based on role
                     $roleSequence = [
                         'CREATOR' => 1,

@@ -129,6 +129,12 @@
                         </div>
 
                         <div class="form-group">
+                            <label>Deskripsi Kegiatan</label>
+                            <textarea class="form-control" name="deskripsi_kegiatan" rows="4"
+                                placeholder="Masukkan deskripsi kegiatan">{{ old('deskripsi_kegiatan', $workflow->deskripsi_kegiatan) }}</textarea>
+                        </div>
+
+                        <div class="form-group">
                             <label>Total Nilai</label>
                             <input type="text" class="form-control" required id="total_nilai_display"
                                 placeholder="Total Nilai" value="{{ 'Rp ' . number_format($workflow->total_nilai, 0, ',', '.') }}">

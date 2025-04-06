@@ -134,6 +134,10 @@
                         <input type="text" class="form-control" value="{{ $workflow->nama_kegiatan }}" readonly>
                     </div>
                     <div class="form-group">
+                        <label>Deskripsi Kegiatan</label>
+                        <textarea class="form-control" rows="4" readonly>{{ $workflow->deskripsi_kegiatan }}</textarea>
+                    </div>
+                    <div class="form-group">
                         <label>Total Nilai</label>
                         <input type="text" class="form-control" value="{{ 'Rp ' . number_format($workflow->total_nilai, 0, ',', '.') }}" readonly>
                     </div>

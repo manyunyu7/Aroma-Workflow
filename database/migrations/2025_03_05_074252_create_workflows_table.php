@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->string('nomor_pengajuan')->unique();
             $table->text('unit_kerja');
             $table->text('nama_kegiatan');
+            $table->text('deskripsi_kegiatan')->nullable();
             $table->text('jenis_anggaran');
             $table->decimal('total_nilai', 15, 2);
             $table->date('waktu_penggunaan');

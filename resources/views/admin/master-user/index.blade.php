@@ -13,12 +13,6 @@
                 </nav>
             </div>
         </div>
-
-        <div class="col-5 align-self-center">
-            <div class="customize-input float-right">
-                <a href="{{ route('admin.master-user.create') }}" class="btn btn-primary">Tambah Master User</a>
-            </div>
-        </div>
     </div>
 @endsection
 
@@ -28,37 +22,69 @@
 
     <div class="card border-primary">
         <div class="card-body">
-            <h4 class="card-title">Master Users</h4>
+            <div class="row mb-3">
+                <div class="col-md-2">
+                    <label for="filter-role">Roles:</label>
+                    <select id="filter-role" class="form-control form-control-sm" multiple>
+                        <!-- Roles will be populated dynamically via JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filter-status">Status</label>
+                    <select id="filter-status" class="form-control form-control-sm">
+                        <option value="All" selected>All</option>
+                        <option value="Active">Active</option>
+                        <option value="Not Active">Not Active</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="filter-nama">Nama:</label>
+                    <input type="text" id="filter-nama" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2">
+                    <label for="filter-nik">NIK:</label>
+                    <input type="text" id="filter-nik" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-4 align-self-end text-right">
+                    <a href="{{ route('admin.master-user.create') }}" class="btn btn-primary btn-sm">Add User</a>
+                </div>
+            </div>
+
             <div class="table-responsive">
-                <table id="table_data" class="table table-hover table-bordered display no-wrap" style="width:100%">
-                    <thead class="">
+                <table id="table_data" class="table table-sm table-hover table-bordered display compact" style="width:100%">
+                    <thead>
                         <tr>
                             <th>No</th>
+                            <th>Role</th>
                             <th>NIK</th>
                             <th>Nama</th>
                             <th>Unit Kerja</th>
                             <th>Jabatan</th>
-                            <th>Roles</th>
-                            <th>Status</th>
+                            <th>Created by</th>
                             <th>Created Date</th>
-                            <th>Created By</th>
+                            <th>Edited by</th>
                             <th>Edited Date</th>
-                            <th>Edited By</th>
-                            <th>Aksi</th>
+                            <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($masterUsers as $user)
+                        @forelse ($masterUsers as $index => $user)
                             <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>{{ $user->nik }}</td>
-                                <td>{{ $user->name }}</td>
-                                <td>{{ $user->unit_kerja }}</td>
-                                <td>{{ $user->jabatan }}</td>
+                                <td>{{ $index + 1 }}</td>
                                 <td>
                                     @foreach ($user->roles as $role)
                                         <span class="badge badge-info">{{ $role->role }}</span>
                                     @endforeach
+                                </td>
+                                <td>{{ $user->nik }}</td>
+                                <td>{{ $user->name }}</td>
+                                <td>{{ $user->unit_kerja }}</td>
+                                <td>{{ $user->jabatan }}</td>
+                                <td>{{ $user->created_by }}</td>
+                                <td>{{ $user->created_at->format('d-M-Y') }}</td>
+                                <td>{{ $user->edited_by ?? '-' }}</td>
+                                <td>{{ $user->updated_at != $user->created_at ? $user->updated_at->format('d-M-Y') : '-' }}
                                 </td>
                                 <td>
                                     @if ($user->status == 'Active')
@@ -67,17 +93,9 @@
                                         <span class="badge badge-danger">Not Active</span>
                                     @endif
                                 </td>
-                                <td>{{ $user->created_at->format('d-M-Y') }}</td>
-                                <td>{{ $user->created_by }}</td>
-                                <td>{{ $user->updated_at != $user->created_at ? $user->updated_at->format('d-M-Y') : '-' }}</td>
-                                <td>{{ $user->edited_by ?? '-' }}</td>
-                                <td>
-                                    <a href="{{ route('admin.master-user.edit', $user->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                    <form action="{{ route('admin.master-user.destroy', $user->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this user?')">Delete</button>
-                                    </form>
+                                <td class="text-center">
+                                    <a href="{{ route('admin.master-user.edit', $user->id) }}"
+                                        class="btn btn-warning btn-sm">Edit</a>
                                 </td>
                             </tr>
                         @empty
@@ -87,6 +105,14 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div class="mt-3">
+                <div class="note">
+                    <strong>Note:</strong><br>
+                    <span class="bg-warning">Master user consist of the Admin and Creator</span><br>
+                    <span class="bg-warning">Grouped by Status Active/Not Active. Default: Active</span>
+                </div>
             </div>
         </div>
     </div>
@@ -98,22 +124,138 @@
         src="https://cdn.datatables.net/v/bs4-4.1.1/jszip-2.5.0/dt-1.10.23/b-1.6.5/b-colvis-1.6.5/b-flash-1.6.5/b-html5-1.6.5/b-print-1.6.5/cr-1.5.3/r-2.2.7/sb-1.0.1/sp-1.2.2/datatables.min.js">
     </script>
 
+    <!-- Add Select2 for better multiple select -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
     <script type="text/javascript">
         $(function() {
-            $('#table_data').DataTable({
+            // Collect available roles from the table
+            var availableRoles = [];
+            $('#table_data tbody tr td:nth-child(2) .badge').each(function() {
+                var role = $(this).text().trim();
+                if ($.inArray(role, availableRoles) === -1) {
+                    availableRoles.push(role);
+                }
+            });
+
+            // Sort roles alphabetically
+            availableRoles.sort();
+
+            // Populate the roles dropdown
+            var roleSelect = $('#filter-role');
+            $.each(availableRoles, function(i, role) {
+                roleSelect.append($('<option>', {
+                    value: role,
+                    text: role
+                }));
+            });
+
+            // Initialize Select2 for multiple role selection
+            roleSelect.select2({
+                placeholder: "Select roles",
+                allowClear: true
+            });
+
+            // Create a custom filtering function
+            $.fn.dataTable.ext.search.push(
+                function(settings, data) {
+                    // Get filter values
+                    var roles = $('#filter-role').val() || [];
+                    var status = $('#filter-status').val();
+                    var nama = $('#filter-nama').val().toLowerCase();
+                    var nik = $('#filter-nik').val().toLowerCase();
+
+                    // Check roles
+                    var roleMatch = roles.length === 0;
+                    if (!roleMatch) {
+                        var rowRoles = data[1].split(' ').map(r => r.trim());
+                        roleMatch = roles.some(r => rowRoles.includes(r));
+                    }
+
+                    // Check status
+                    var statusMatch = status === 'All' || data[10].trim() === status;
+
+                    // Check name
+                    var nameMatch = nama === '' || data[3].toLowerCase().includes(nama);
+
+                    // Check NIK
+                    var nikMatch = nik === '' || data[2].toLowerCase().includes(nik);
+
+                    // Return true only if all filters pass
+                    return roleMatch && statusMatch && nameMatch && nikMatch;
+                }
+            );
+
+            // Initialize DataTable
+            var table = $('#table_data').DataTable({
                 processing: true,
                 serverSide: false,
-                columnDefs: [{
-                    orderable: true,
-                    targets: 0
-                }],
-                dom: 'T<"clear">lfrtip<"bottom"B>',
+                dom: 'rt<"row"<"col-md-6"i><"col-md-6 text-right"B>>p',
                 "lengthMenu": [
                     [10, 25, 50, -1],
                     [10, 25, 50, "All"]
                 ],
-                buttons: ['copyHtml5', 'excelHtml5', 'csvHtml5'],
+                buttons: [{
+                        extend: 'copyHtml5',
+                        className: 'btn btn-sm btn-secondary mt-2'
+                    },
+                    {
+                        extend: 'excelHtml5',
+                        className: 'btn btn-sm btn-secondary mt-2'
+                    },
+                    {
+                        extend: 'csvHtml5',
+                        className: 'btn btn-sm btn-secondary mt-2'
+                    }
+                ],
+                "pageLength": 10
+            });
+
+            // Apply filters on change
+            $('#filter-status, #filter-nama, #filter-nik, #filter-role').on('change keyup', function() {
+                table.draw();
             });
         });
     </script>
+
+    <style>
+        /* Make table more compact */
+        .table.compact td,
+        .table.compact th {
+            padding: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        /* Style for the badge spacing */
+        .badge {
+            margin-right: 2px;
+        }
+
+        /* Highlight for notes */
+        .note span.bg-warning {
+            display: inline-block;
+            padding: 2px 5px;
+            margin-top: 5px;
+        }
+
+        /* Style for Select2 dropdown */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        /* Make the button look better */
+        .btn-warning {
+            color: #212529;
+            font-size: 0.8rem;
+            padding: 0.15rem 0.5rem;
+        }
+
+        /* Compact pagination and info */
+        .dataTables_info,
+        .dataTables_paginate {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
 @endsection

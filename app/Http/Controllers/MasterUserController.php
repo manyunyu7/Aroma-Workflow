@@ -15,7 +15,21 @@ class MasterUserController extends Controller
      */
     public function index()
     {
-        $masterUsers = User::with('roles')->get();
+        $masterUsers = User::with('roles')
+            // Left joins to handle cases where creator/editor might not exist
+            ->leftJoin(DB::raw('(SELECT id, name FROM users) as creator_user'), function ($join) {
+                $join->on('users.created_by', '=', 'creator_user.id');
+            })
+            ->leftJoin(DB::raw('(SELECT id, name FROM users) as editor_user'), function ($join) {
+                $join->on('users.edited_by', '=', 'editor_user.id');
+            })
+            ->select(
+                'users.*',
+                'creator_user.name as creator_name',
+                'editor_user.name as editor_name'
+            )
+            ->get();
+
         return view('admin.master-user.index', compact('masterUsers'));
     }
 

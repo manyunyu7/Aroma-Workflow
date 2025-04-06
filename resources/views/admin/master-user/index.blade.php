@@ -81,11 +81,26 @@
                                 <td>{{ $user->name }}</td>
                                 <td>{{ $user->unit_kerja }}</td>
                                 <td>{{ $user->jabatan }}</td>
-                                <td>{{ $user->created_by }}</td>
-                                <td>{{ $user->created_at->format('d-M-Y') }}</td>
-                                <td>{{ $user->edited_by ?? '-' }}</td>
-                                <td>{{ $user->updated_at != $user->created_at ? $user->updated_at->format('d-M-Y') : '-' }}
+                                <td>
+                                    @if ($user->creator_name)
+                                        {{ $user->creator_name }}
+                                    @elseif ($user->created_by)
+                                        {{ $user->created_by }} <span class="text-warning">(Deleted User)</span>
+                                    @else
+                                        -
+                                    @endif
                                 </td>
+                                <td>{{ $user->created_at->format('d-M-Y') }}</td>
+                                <td>
+                                    @if ($user->editor_name)
+                                        {{ $user->editor_name }}
+                                    @elseif ($user->edited_by)
+                                        {{ $user->edited_by }} <span class="text-warning">(Deleted User)</span>
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td>{{ $user->updated_at != $user->created_at ? $user->updated_at->format('d-M-Y') : '-' }}</td>
                                 <td>
                                     @if ($user->status == 'Active')
                                         <span class="badge badge-success">Active</span>

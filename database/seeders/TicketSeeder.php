@@ -71,7 +71,7 @@ class TicketSeeder extends Seeder
             'password' => bcrypt($password),
             'nik' => $nik,
             'status' => 'Active',
-            'created_by' => 'Seeder',
+            'created_by' => '1',
         ]);
 
         // Add role to the user

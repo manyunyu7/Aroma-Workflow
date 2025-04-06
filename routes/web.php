@@ -49,16 +49,26 @@ Route::get('/user/home', [HomeController::class, 'homeUser']);
 Route::post('/user/regis', [RegistrasiController::class, 'store']);
 
 
-Route::get('hehe',[MasterKaryawanController::class, 'getAllKaryawan']);
-Route::get('hihi',[MasterKaryawanController::class, 'detailKaryawan']);
+Route::get('hehe', [MasterKaryawanController::class, 'getAllKaryawan']);
+Route::get('hihi', [MasterKaryawanController::class, 'detailKaryawan']);
 
 
-// Define your action routes with a different URL pattern
+// Define your workflow action routes
 Route::get('workflow-actions/find-users', [WorkflowController::class, 'findUsers'])
     ->name('workflows.find-users');
 
 Route::get('workflow-actions/fetch-jabatan', [WorkflowController::class, 'fetchJabatan'])
     ->name('workflows.fetch-jabatan');
+
+Route::get('workflow-actions/get-unit-kerja', [WorkflowController::class, 'getUnitKerja'])
+    ->name('workflows.get-unit-kerja');
+
+Route::get('workflow-actions/get-employees', [WorkflowController::class, 'getEmployees'])
+    ->name('workflows.get-employees');
+
+
+Route::get('workflow-actions/get-user-roles', [WorkflowController::class, 'getUserRoles'])
+    ->name('workflows.get-user-roles');
 
 // Keep the approval and rejection routes with the workflows prefix
 Route::post('workflows/{workflow}/approve', [WorkflowController::class, 'approve'])
@@ -75,7 +85,7 @@ Route::resource('workflows', WorkflowController::class);
 
 
 Route::get('meta/find-users', [WorkflowController::class, 'findUsers']);
-Route::get('meta/fetch-jabatan',[WorkflowController::class, 'fetchJabatan']);
+Route::get('meta/fetch-jabatan', [WorkflowController::class, 'fetchJabatan']);
 
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {

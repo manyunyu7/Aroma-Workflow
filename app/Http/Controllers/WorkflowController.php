@@ -15,6 +15,95 @@ use Illuminate\Validation\Rule;
 
 class WorkflowController extends Controller
 {
+
+    /**
+     * Get all unique unit kerja with employee count
+     */
+    public function getUnitKerja(Request $request)
+    {
+        $search = $request->input('search');
+
+        if (!$search) {
+            return response()->json(['error' => 'Search parameter is required'], 400);
+        }
+
+        // Get unit kerja with employee count, filtered by search term
+        $unitKerja = DB::table('users')
+            ->select('unit_kerja', DB::raw('COUNT(*) as employee_count'))
+            ->where('status', 'active')
+            ->where('unit_kerja', 'like', "%{$search}%")
+            ->groupBy('unit_kerja')
+            ->havingRaw('COUNT(*) > 0')
+            ->get();
+
+        return response()->json($unitKerja);
+    }
+
+    /**
+     * Get employees by unit kerja
+     */
+    public function getEmployees(Request $request)
+    {
+        $unitKerja = $request->input('unit_kerja');
+
+        if (!$unitKerja) {
+            return response()->json(['error' => 'Unit kerja parameter is required'], 400);
+        }
+
+        // Get employees from the specified unit
+        $employees = User::where('status', 'active')
+            ->where('unit_kerja', $unitKerja)
+            ->select('id', 'name', 'nik')
+            ->get();
+
+        return response()->json($employees);
+    }
+
+    /**
+     * Get roles for a specific user
+     */
+    /**
+     * Get roles for a specific user
+     */
+    public function getUserRoles(Request $request)
+    {
+        $userId = $request->input('user_id');
+
+        if (!$userId) {
+            return response()->json(['error' => 'User ID is required'], 400);
+        }
+
+        // Get user roles
+        $roles = UserRole::where('user_id', $userId)
+            ->get(['role']);
+
+        // If no roles found, return empty array
+        if ($roles->isEmpty()) {
+            return response()->json([]);
+        }
+
+        // Map roles to include role name if available
+        $mappedRoles = $roles->map(function ($roleObj) {
+            $roleCode = $roleObj->role;
+            $roleName = null;
+
+            // Try to get role name from Workflow::getStatuses()
+            $workflowStatuses = collect(Workflow::getStatuses());
+            $matchingStatus = $workflowStatuses->firstWhere('code', $roleCode);
+
+            if ($matchingStatus) {
+                $roleName = $matchingStatus['name'];
+            }
+
+            return [
+                'role' => $roleCode,
+                'role_name' => $roleName
+            ];
+        });
+
+        return response()->json($mappedRoles);
+    }
+
     public function index(Request $request)
     {
         // Get current user
@@ -113,7 +202,7 @@ class WorkflowController extends Controller
                 'pics.*.user_id'     => 'required',
                 'pics.*.notes'       => 'nullable|string',
                 'pics.*.digital_signature' => 'nullable|string',
-                'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
+                // 'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
                 'documents'          => 'nullable|array',
                 'documents.*'        => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
                 'is_draft'           => 'nullable|boolean',

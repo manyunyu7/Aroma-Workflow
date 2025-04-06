@@ -98,15 +98,14 @@
 
                         <div class="form-group">
                             <label for="unit_kerja">Unit Kerja</label>
-                            <input type="text" class="form-control" id="unit"
-                                value="{{ $unitKerja }}" readonly>
+                            <input type="text" class="form-control" id="unit" value="{{ $unitKerja }}" readonly>
                             <input type="hidden" name="unit_kerja" value="{{ $unitKerja }}">
                         </div>
 
                         <div class="form-group">
                             <label for="cost_center">Cost Center</label>
-                            <input type="text" class="form-control" id="cost_center"
-                                value="{{ $costCenter }}" readonly>
+                            <input type="text" class="form-control" id="cost_center" value="{{ $costCenter }}"
+                                readonly>
                             <input type="hidden" name="cost_center" value="{{ $costCenter }}">
                         </div>
 
@@ -115,7 +114,9 @@
                             <select class="form-control" required name="jenis_anggaran">
                                 <option value="">-- Pilih Jenis Anggaran --</option>
                                 @foreach ($jenisAnggaran as $anggaran)
-                                    <option value="{{ $anggaran->id }}" {{ old('jenis_anggaran') == $anggaran->id ? 'selected' : '' }}>{{ $anggaran->nama }}</option>
+                                    <option value="{{ $anggaran->id }}"
+                                        {{ old('jenis_anggaran') == $anggaran->id ? 'selected' : '' }}>{{ $anggaran->nama }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -129,8 +130,7 @@
 
                         <div class="form-group">
                             <label>Deskripsi Kegiatan</label>
-                            <textarea class="form-control" name="deskripsi_kegiatan" rows="4"
-                                placeholder="Masukkan deskripsi kegiatan">{{ old('deskripsi_kegiatan') }}</textarea>
+                            <textarea class="form-control" name="deskripsi_kegiatan" rows="4" placeholder="Masukkan deskripsi kegiatan">{{ old('deskripsi_kegiatan') }}</textarea>
                         </div>
 
                         <div class="form-group">
@@ -177,7 +177,8 @@
 
                         <div class="form-group">
                             <label>Waktu Penggunaan</label>
-                            <input type="date" class="form-control" required name="waktu_penggunaan" value="{{ old('waktu_penggunaan') }}">
+                            <input type="date" class="form-control" required name="waktu_penggunaan"
+                                value="{{ old('waktu_penggunaan') }}">
                         </div>
 
                         <div class="form-group">
@@ -185,20 +186,28 @@
                             <select class="form-control select2" id="account" name="account" required>
                                 <option value="">-- Select Account --</option>
                                 <optgroup label="Assets">
-                                    <option value="1001" {{ old('account') == '1001' ? 'selected' : '' }}>1001 - Cash & Bank</option>
-                                    <option value="1002" {{ old('account') == '1002' ? 'selected' : '' }}>1002 - Accounts Receivable</option>
+                                    <option value="1001" {{ old('account') == '1001' ? 'selected' : '' }}>1001 - Cash &
+                                        Bank</option>
+                                    <option value="1002" {{ old('account') == '1002' ? 'selected' : '' }}>1002 - Accounts
+                                        Receivable</option>
                                 </optgroup>
                                 <optgroup label="Liabilities">
-                                    <option value="2001" {{ old('account') == '2001' ? 'selected' : '' }}>2001 - Accounts Payable</option>
-                                    <option value="2002" {{ old('account') == '2002' ? 'selected' : '' }}>2002 - Bank Loans</option>
+                                    <option value="2001" {{ old('account') == '2001' ? 'selected' : '' }}>2001 - Accounts
+                                        Payable</option>
+                                    <option value="2002" {{ old('account') == '2002' ? 'selected' : '' }}>2002 - Bank
+                                        Loans</option>
                                 </optgroup>
                                 <optgroup label="Revenue">
-                                    <option value="3001" {{ old('account') == '3001' ? 'selected' : '' }}>3001 - Broadband Services Revenue</option>
-                                    <option value="3002" {{ old('account') == '3002' ? 'selected' : '' }}>3002 - Enterprise Solutions Revenue</option>
+                                    <option value="3001" {{ old('account') == '3001' ? 'selected' : '' }}>3001 -
+                                        Broadband Services Revenue</option>
+                                    <option value="3002" {{ old('account') == '3002' ? 'selected' : '' }}>3002 -
+                                        Enterprise Solutions Revenue</option>
                                 </optgroup>
                                 <optgroup label="Expenses">
-                                    <option value="5001" {{ old('account') == '5001' ? 'selected' : '' }}>5001 - Network Maintenance</option>
-                                    <option value="5002" {{ old('account') == '5002' ? 'selected' : '' }}>5002 - Marketing & Sales</option>
+                                    <option value="5001" {{ old('account') == '5001' ? 'selected' : '' }}>5001 - Network
+                                        Maintenance</option>
+                                    <option value="5002" {{ old('account') == '5002' ? 'selected' : '' }}>5002 -
+                                        Marketing & Sales</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -212,8 +221,8 @@
 
                             <!-- Multiple file upload -->
                             <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="documents" name="documents[]"
-                                       multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                                <input type="file" class="custom-file-input" id="documents" name="documents[]" multiple
+                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
                                 <label class="custom-file-label" for="documents">Choose files</label>
                             </div>
 
@@ -284,8 +293,7 @@
                             <td>Created By <input type="hidden" name="pics[0][role]" value="CREATOR"></td>
                             <td>
                                 {{ $user->jabatan ?? 'N/A' }} <!-- Display the logged-in user's jabatan -->
-                                <input type="hidden" name="pics[0][jabatan]"
-                                    value="{{ $user->jabatan ?? '' }}">
+                                <input type="hidden" name="pics[0][jabatan]" value="{{ $user->jabatan ?? '' }}">
                             </td>
                             <td>
                                 <div class="form-check">
@@ -304,7 +312,8 @@
                             @if ($index > 0)
                                 <tr class="pic-entry">
                                     <td>
-                                        <input type="text" class="form-control" name="pics[{{ $index }}][user_id]"
+                                        <input type="text" class="form-control"
+                                            name="pics[{{ $index }}][user_id]"
                                             value="{{ $pic['user_id'] ?? '' }}" placeholder="User ID">
                                     </td>
                                     <td>
@@ -320,7 +329,8 @@
                                     </td>
                                     <td>
                                         <span class="jabatan-display">{{ $pic['jabatan'] ?? 'N/A' }}</span>
-                                        <input type="hidden" name="pics[{{ $index }}][jabatan]" value="{{ $pic['jabatan'] ?? '' }}">
+                                        <input type="hidden" name="pics[{{ $index }}][jabatan]"
+                                            value="{{ $pic['jabatan'] ?? '' }}">
                                     </td>
                                     <td>
                                         <div class="form-check">
@@ -361,19 +371,26 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <label>Select User</label>
-                    <select id="user-select" class="form-control" style="width: 100%;"></select>
-                    <label class="mt-2">Role</label>
-                    <select id="role-select" class="form-control">
-                        @foreach (\App\Models\Workflow::getStatuses() as $status)
-                            @if ($status['code'] != 'CREATOR') {{-- Skip CREATOR role as it's for the logged-in user --}}
-                                <option value="{{ $status['code'] }}">{{ $status['name'] }}</option>
-                            @endif
-                        @endforeach
-                    </select>
-                    <label class="mt-2">Jabatan</label>
-                    <span id="jabatan-display">N/A</span> <!-- Display jabatan here -->
-                    <input type="hidden" id="jabatan-input"> <!-- Hidden input for jabatan -->
+                    <div class="form-group">
+                        <label>Select Unit Kerja</label>
+                        <select id="unit-kerja-select" class="form-control" style="width: 100%;"></select>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label>Select Employee</label>
+                        <select id="employee-select" class="form-control" style="width: 100%;" disabled></select>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label>Role</label>
+                        <select id="role-select" class="form-control" disabled></select>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <label>Jabatan</label>
+                        <p id="jabatan-display" class="form-control-static">N/A</p>
+                        <input type="hidden" id="jabatan-input">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -388,58 +405,132 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            const userSelect = $("#user-select");
+            const unitKerjaSelect = $("#unit-kerja-select");
+            const employeeSelect = $("#employee-select");
+            const roleSelect = $("#role-select");
             const picTable = $("#pic-table");
             const modal = new bootstrap.Modal(document.getElementById("pic-modal"));
             let picIndex = {{ count(old('pics', [1])) }}; // Start with the next index after existing PICs
 
-            // Initialize Select2 with AJAX
-            userSelect.select2({
+            // Initialize the unit kerja select with Select2
+            unitKerjaSelect.select2({
                 ajax: {
-                    url: "/workflow-actions/find-users",
+                    url: "/workflow-actions/get-unit-kerja",
                     dataType: "json",
                     delay: 250,
                     data: function(params) {
                         return {
-                            search: params.term
+                            search: params.term || ""
                         };
                     },
                     processResults: function(data) {
                         return {
-                            results: data.map(user => ({
-                                id: user.id,
-                                text: user.name
+                            results: data.map(unit => ({
+                                id: unit.unit_kerja,
+                                text: `${unit.unit_kerja} (${unit.employee_count} employees)`
                             }))
                         };
                     },
                     cache: true
                 },
-                minimumInputLength: 2,
-                placeholder: "Select a user",
+                minimumInputLength: 0, // Show all on empty search
+                placeholder: "Select a unit kerja",
                 allowClear: true,
                 dropdownParent: $('#pic-modal')
             });
 
-            userSelect.on("select2:select", function(e) {
+            // Initialize the employee select with Select2
+            employeeSelect.select2({
+                placeholder: "Select an employee",
+                allowClear: true,
+                dropdownParent: $('#pic-modal')
+            });
+
+            // When unit kerja is selected, load employees
+            unitKerjaSelect.on("select2:select", function(e) {
+                const unitKerja = e.params.data.id;
+
+                // Clear and enable employee select
+                employeeSelect.empty().prop("disabled", false);
+
+                // Load employees for this unit
+                $.get("/workflow-actions/get-employees", {
+                    unit_kerja: unitKerja
+                }, function(data) {
+                    if (data.length > 0) {
+                        // Add empty option first
+                        employeeSelect.append(new Option('-- Select Employee --', '', true, true));
+
+                        // Add employees to select
+                        data.forEach(employee => {
+                            employeeSelect.append(new Option(employee.name, employee.id, false, false));
+                        });
+                    } else {
+                        employeeSelect.append(new Option('No employees found', '', true, true));
+                        employeeSelect.prop("disabled", true);
+                    }
+                }).fail(function(xhr, status, error) {
+                    console.error("Error fetching employees:", error);
+                    employeeSelect.append(new Option('Error loading employees', '', true, true));
+                });
+            });
+
+            // When employee is selected, load their jabatan and roles
+            employeeSelect.on("select2:select", function(e) {
                 const userId = e.params.data.id;
 
+                // Get employee's jabatan
                 $.get("/workflow-actions/fetch-jabatan", {
                     user_id: userId
                 }, function(response) {
                     if (response.success) {
-                        $("#jabatan-display").text(response.nama_posisi); // Display jabatan
-                        $("#jabatan-input").val(response.nama_posisi); // Store jabatan in hidden input
+                        $("#jabatan-display").text(response.nama_posisi);
+                        $("#jabatan-input").val(response.nama_posisi);
                     } else {
                         $("#jabatan-display").text("Position not found");
-                        $("#jabatan-input").val(""); // Clear jabatan if not found
+                        $("#jabatan-input").val("");
                     }
+                }).fail(function(xhr, status, error) {
+                    console.error("Error fetching jabatan:", error);
+                    $("#jabatan-display").text("Error loading position");
+                });
+
+                // Get employee's roles
+                $.get("/workflow-actions/get-user-roles", {
+                    user_id: userId
+                }, function(roles) {
+                    // Clear and enable role select
+                    roleSelect.empty().prop("disabled", false);
+
+                    if (roles && roles.length > 0) {
+                        roles.forEach(function(role) {
+                            const displayName = role.role_name || role.role;
+                            roleSelect.append(new Option(displayName, role.role, false, false));
+                        });
+                    } else {
+                        // If no roles found, use the default workflow roles
+                        @foreach (\App\Models\Workflow::getStatuses() as $status)
+                            @if ($status['code'] != 'CREATOR')
+                                roleSelect.append(new Option("{{ $status['name'] }}", "{{ $status['code'] }}", false, false));
+                            @endif
+                        @endforeach
+                    }
+
+                    // Set first option as selected
+                    if (roleSelect.find("option").length > 0) {
+                        roleSelect.val(roleSelect.find("option:first").val());
+                    }
+                }).fail(function(xhr, status, error) {
+                    console.error("Error fetching roles:", error);
+                    roleSelect.append(new Option('Error loading roles', '', true, true));
                 });
             });
 
             $("#add-pic-btn").click(function() {
-                // Reset the form
-                userSelect.val(null).trigger('change');
-                $("#role-select").val($("#role-select option:first").val());
+                // Reset all form fields
+                unitKerjaSelect.val(null).trigger('change');
+                employeeSelect.empty().prop("disabled", true);
+                roleSelect.empty().prop("disabled", true);
                 $("#jabatan-display").text("N/A");
                 $("#jabatan-input").val("");
 
@@ -451,14 +542,14 @@
             });
 
             $("#save-pic").click(function() {
-                const userId = userSelect.val();
-                const userName = userSelect.find("option:selected").text();
-                const roleCode = $("#role-select").val();
-                const roleName = $("#role-select option:selected").text();
+                const userId = employeeSelect.val();
+                const userName = employeeSelect.find("option:selected").text();
+                const roleCode = roleSelect.val();
+                const roleName = roleSelect.find("option:selected").text();
                 const jabatan = $("#jabatan-input").val() || 'N/A';
 
                 if (!userId || !roleCode) {
-                    alert("Please select both user and role");
+                    alert("Please select unit kerja, employee, and role");
                     return;
                 }
 

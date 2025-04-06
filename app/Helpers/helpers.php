@@ -61,7 +61,7 @@ if (!function_exists('getAuthNik')) {
     function getAuthNik()
     {
         if (Auth::check()) {
-            return Auth::user()->id; // Local DB user
+            return Auth::user()->nik; // Local DB user
         }
         return 'Guest';
     }

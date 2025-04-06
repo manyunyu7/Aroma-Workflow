@@ -21,7 +21,7 @@ return new class extends Migration
             $table->unsignedInteger('sequence')->default(1); // Order of approval
             $table->integer('is_active')->default(0); // Level of approval
             $table->integer('digital_signature')->default(0)->nullable(); // Level of approval
-            $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED', 'REVISED', 'CANCELLED'])->default('PENDING');
+            $table->enum('status', ['PENDING', 'APPROVED', 'REJECTED', 'REVISED', 'CANCELLED','DRAFT'])->default('PENDING');
             $table->timestamp('approved_at')->nullable();
             $table->timestamp('rejected_at')->nullable();
             $table->unsignedBigInteger('updated_by')->nullable();

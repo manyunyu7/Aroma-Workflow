@@ -27,6 +27,11 @@ return new class extends Migration {
                 'DIGITAL_SIGNING',
                 'COMPLETED'
             ])->default('DRAFT_CREATOR');
+
+            // Add created_by column for tracking the user who created the record
+            $table->unsignedBigInteger('created_by');
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
+
             $table->timestamps();
         });
     }

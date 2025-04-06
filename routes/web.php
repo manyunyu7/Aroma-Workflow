@@ -53,15 +53,26 @@ Route::get('hehe',[MasterKaryawanController::class, 'getAllKaryawan']);
 Route::get('hihi',[MasterKaryawanController::class, 'detailKaryawan']);
 
 
-Route::prefix('workflows')->name('workflows.')->group(function () {
-    Route::get('/', [WorkflowController::class, 'index'])->name('index'); // List workflows
-    Route::get('/create', [WorkflowController::class, 'create'])->name('create'); // Create form
-    Route::post('/store', [WorkflowController::class, 'store'])->name('store'); // Store new workflow
-    Route::get('/{workflow}', [WorkflowController::class, 'show'])->name('show'); // Show details
-    Route::get('/{workflow}/edit', [WorkflowController::class, 'edit'])->name('edit'); // Edit form
-    Route::put('/{workflow}', [WorkflowController::class, 'update'])->name('update'); // Update workflow
-    Route::delete('/{workflow}', [WorkflowController::class, 'destroy'])->name('destroy'); // Delete workflow
-});
+// Define your action routes with a different URL pattern
+Route::get('workflow-actions/find-users', [WorkflowController::class, 'findUsers'])
+    ->name('workflows.find-users');
+
+Route::get('workflow-actions/fetch-jabatan', [WorkflowController::class, 'fetchJabatan'])
+    ->name('workflows.fetch-jabatan');
+
+// Keep the approval and rejection routes with the workflows prefix
+Route::post('workflows/{workflow}/approve', [WorkflowController::class, 'approve'])
+    ->name('workflows.approve');
+
+Route::post('workflows/{workflow}/reject', [WorkflowController::class, 'reject'])
+    ->name('workflows.reject');
+
+Route::post('workflows/{workflow}/draft', [WorkflowController::class, 'draft'])
+    ->name('workflows.draft');
+
+// Then use the standard resource routes
+Route::resource('workflows', WorkflowController::class);
+
 
 Route::get('meta/find-users', [WorkflowController::class, 'findUsers']);
 Route::get('meta/fetch-jabatan',[WorkflowController::class, 'fetchJabatan']);

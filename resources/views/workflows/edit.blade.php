@@ -3,12 +3,12 @@
 @section('page-breadcrumb')
     <div class="row">
         <div class="col-7 align-self-center">
-            <h4 class="page-title text-truncate text-dark font-weight-medium mb-1">Justification Form</h4>
+            <h4 class="page-title text-truncate text-dark font-weight-medium mb-1">Edit Justification Form</h4>
             <div class="d-flex align-items-center">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb m-0 p-0">
                         <li class="breadcrumb-item text-muted active" aria-current="page">Justification Form</li>
-                        <li class="breadcrumb-item text-muted" aria-current="page">Create</li>
+                        <li class="breadcrumb-item text-muted" aria-current="page">Edit</li>
                     </ol>
                 </nav>
             </div>
@@ -66,6 +66,11 @@
         .document-item:hover {
             background-color: #f8f9fa;
         }
+
+        /* Document removal checkbox styling */
+        .document-remove {
+            margin-right: 10px;
+        }
     </style>
 @endpush
 
@@ -74,11 +79,12 @@
 
     <div class="card border-primary">
         <div class="card-body">
-            <h3 class="card-title">Justification Form</h3>
+            <h3 class="card-title">Edit Justification Form</h3>
             <hr>
 
-            <form action="{{ route('workflows.store') }}" method="post" enctype="multipart/form-data">
+            <form action="{{ route('workflows.update', $workflow->id) }}" method="post" enctype="multipart/form-data">
                 @csrf
+                @method('PUT')
 
                 <div class="row">
                     <!-- Bagian 1 -->
@@ -86,28 +92,21 @@
                         <div class="form-group">
                             <label>Nomor Pengajuan</label>
                             <input type="text" class="form-control" required name="nomor_pengajuan"
-                                placeholder="Nomor Pengajuan" value="{{ old('nomor_pengajuan') }}">
+                                placeholder="Nomor Pengajuan" value="{{ old('nomor_pengajuan', $workflow->nomor_pengajuan) }}">
                         </div>
-
-                        @php
-                            $nik = getAuthNik() ?? null;
-                            $employeeDetails = getDetailNaker($nik);
-                            $costCenter = $employeeDetails['cost_center_name']['nama_cost_center'] ?? '';
-                            $unitKerja = $employeeDetails['unit'] ?? '';
-                        @endphp
 
                         <div class="form-group">
                             <label for="unit_kerja">Unit Kerja</label>
                             <input type="text" class="form-control" id="unit"
-                                value="{{ $unitKerja }}" readonly>
-                            <input type="hidden" name="unit_kerja" value="{{ $unitKerja }}">
+                                value="{{ old('unit_kerja', $workflow->unit_kerja) }}" readonly>
+                            <input type="hidden" name="unit_kerja" value="{{ old('unit_kerja', $workflow->unit_kerja) }}">
                         </div>
 
                         <div class="form-group">
                             <label for="cost_center">Cost Center</label>
                             <input type="text" class="form-control" id="cost_center"
-                                value="{{ $costCenter }}" readonly>
-                            <input type="hidden" name="cost_center" value="{{ $costCenter }}">
+                                value="{{ old('cost_center', $workflow->cost_center) }}" readonly>
+                            <input type="hidden" name="cost_center" value="{{ old('cost_center', $workflow->cost_center) }}">
                         </div>
 
                         <div class="form-group">
@@ -115,34 +114,30 @@
                             <select class="form-control" required name="jenis_anggaran">
                                 <option value="">-- Pilih Jenis Anggaran --</option>
                                 @foreach ($jenisAnggaran as $anggaran)
-                                    <option value="{{ $anggaran->id }}" {{ old('jenis_anggaran') == $anggaran->id ? 'selected' : '' }}>{{ $anggaran->nama }}</option>
+                                    <option value="{{ $anggaran->id }}"
+                                        {{ old('jenis_anggaran', $workflow->jenis_anggaran) == $anggaran->id ? 'selected' : '' }}>
+                                        {{ $anggaran->nama }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
 
-
                         <div class="form-group">
                             <label>Nama Kegiatan</label>
                             <input type="text" class="form-control" required name="nama_kegiatan"
-                                placeholder="Nama Kegiatan" value="{{ old('nama_kegiatan') }}">
+                                placeholder="Nama Kegiatan" value="{{ old('nama_kegiatan', $workflow->nama_kegiatan) }}">
                         </div>
 
                         <div class="form-group">
                             <label>Total Nilai</label>
                             <input type="text" class="form-control" required id="total_nilai_display"
-                                placeholder="Total Nilai" value="{{ old('total_nilai_display') }}">
-                            <input type="hidden" name="total_nilai" id="total_nilai" value="{{ old('total_nilai') }}">
+                                placeholder="Total Nilai" value="{{ 'Rp ' . number_format($workflow->total_nilai, 0, ',', '.') }}">
+                            <input type="hidden" name="total_nilai" id="total_nilai" value="{{ old('total_nilai', $workflow->total_nilai) }}">
 
                             <script>
                                 document.addEventListener('DOMContentLoaded', function() {
                                     const displayField = document.getElementById('total_nilai_display');
                                     const valueField = document.getElementById('total_nilai');
-
-                                    // Format initial value if exists
-                                    if (valueField.value) {
-                                        const numberValue = parseInt(valueField.value, 10);
-                                        displayField.value = 'Rp ' + numberValue.toLocaleString('id-ID');
-                                    }
 
                                     displayField.addEventListener('input', function(e) {
                                         // Remove non-digit characters and the "Rp" prefix
@@ -171,7 +166,8 @@
 
                         <div class="form-group">
                             <label>Waktu Penggunaan</label>
-                            <input type="date" class="form-control" required name="waktu_penggunaan" value="{{ old('waktu_penggunaan') }}">
+                            <input type="date" class="form-control" required name="waktu_penggunaan"
+                                value="{{ old('waktu_penggunaan', $workflow->waktu_penggunaan->format('Y-m-d')) }}">
                         </div>
 
                         <div class="form-group">
@@ -179,46 +175,89 @@
                             <select class="form-control select2" id="account" name="account" required>
                                 <option value="">-- Select Account --</option>
                                 <optgroup label="Assets">
-                                    <option value="1001" {{ old('account') == '1001' ? 'selected' : '' }}>1001 - Cash & Bank</option>
-                                    <option value="1002" {{ old('account') == '1002' ? 'selected' : '' }}>1002 - Accounts Receivable</option>
+                                    <option value="1001" {{ old('account', $workflow->account) == '1001' ? 'selected' : '' }}>1001 - Cash & Bank</option>
+                                    <option value="1002" {{ old('account', $workflow->account) == '1002' ? 'selected' : '' }}>1002 - Accounts Receivable</option>
                                 </optgroup>
                                 <optgroup label="Liabilities">
-                                    <option value="2001" {{ old('account') == '2001' ? 'selected' : '' }}>2001 - Accounts Payable</option>
-                                    <option value="2002" {{ old('account') == '2002' ? 'selected' : '' }}>2002 - Bank Loans</option>
+                                    <option value="2001" {{ old('account', $workflow->account) == '2001' ? 'selected' : '' }}>2001 - Accounts Payable</option>
+                                    <option value="2002" {{ old('account', $workflow->account) == '2002' ? 'selected' : '' }}>2002 - Bank Loans</option>
                                 </optgroup>
                                 <optgroup label="Revenue">
-                                    <option value="3001" {{ old('account') == '3001' ? 'selected' : '' }}>3001 - Broadband Services Revenue</option>
-                                    <option value="3002" {{ old('account') == '3002' ? 'selected' : '' }}>3002 - Enterprise Solutions Revenue</option>
+                                    <option value="3001" {{ old('account', $workflow->account) == '3001' ? 'selected' : '' }}>3001 - Broadband Services Revenue</option>
+                                    <option value="3002" {{ old('account', $workflow->account) == '3002' ? 'selected' : '' }}>3002 - Enterprise Solutions Revenue</option>
                                 </optgroup>
                                 <optgroup label="Expenses">
-                                    <option value="5001" {{ old('account') == '5001' ? 'selected' : '' }}>5001 - Network Maintenance</option>
-                                    <option value="5002" {{ old('account') == '5002' ? 'selected' : '' }}>5002 - Marketing & Sales</option>
+                                    <option value="5001" {{ old('account', $workflow->account) == '5001' ? 'selected' : '' }}>5001 - Network Maintenance</option>
+                                    <option value="5002" {{ old('account', $workflow->account) == '5002' ? 'selected' : '' }}>5002 - Marketing & Sales</option>
                                 </optgroup>
                             </select>
                         </div>
-
                     </div>
 
                     <!-- Bagian 2 -->
                     <div class="col-md-6 col-12">
                         <div class="form-group">
-                            <label>Justification Documents (PDF, DOC, XLS, Images)</label>
+                            <label>Current Documents</label>
 
-                            <!-- Multiple file upload -->
+                            @if ($workflowDocuments->isNotEmpty())
+                                <div class="document-list">
+                                    @foreach ($workflowDocuments as $document)
+                                        <div class="document-item">
+                                            <div class="d-flex align-items-center">
+                                                <div class="form-check document-remove">
+                                                    <input type="checkbox" class="form-check-input" name="remove_documents[]" value="{{ $document->id }}" id="remove_doc_{{ $document->id }}">
+                                                    <label class="form-check-label" for="remove_doc_{{ $document->id }}">Remove</label>
+                                                </div>
+                                                <div>
+                                                    @php
+                                                        $extension = strtolower($document->file_type);
+                                                        $icon = 'fa-file';
+
+                                                        if (in_array($extension, ['pdf'])) {
+                                                            $icon = 'fa-file-pdf';
+                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                            $icon = 'fa-file-word';
+                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                            $icon = 'fa-file-excel';
+                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                                                            $icon = 'fa-file-image';
+                                                        }
+                                                    @endphp
+
+                                                    <i class="fas {{ $icon }} mr-2"></i>
+                                                    <span>{{ $document->file_name }}</span>
+                                                    <small class="text-muted ml-2">({{ $document->file_type }})</small>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info" target="_blank">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-muted">No documents uploaded.</p>
+                            @endif
+
+                            <hr>
+
+                            <label>Upload New Documents</label>
                             <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="documents" name="documents[]"
+                                <input type="file" class="custom-file-input" id="new_documents" name="new_documents[]"
                                        multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
-                                <label class="custom-file-label" for="documents">Choose files</label>
+                                <label class="custom-file-label" for="new_documents">Choose files</label>
                             </div>
 
-                            <!-- Document list container -->
-                            <div id="documentList" class="document-list"></div>
+                            <!-- New document list container -->
+                            <div id="newDocumentList" class="document-list"></div>
 
                             <script>
                                 document.addEventListener('DOMContentLoaded', function() {
-                                    const fileInput = document.getElementById('documents');
+                                    const fileInput = document.getElementById('new_documents');
                                     const fileLabel = document.querySelector('.custom-file-label');
-                                    const documentList = document.getElementById('documentList');
+                                    const documentList = document.getElementById('newDocumentList');
 
                                     fileInput.addEventListener('change', function(e) {
                                         // Update the file label
@@ -269,76 +308,49 @@
                         </tr>
                     </thead>
                     <tbody id="pic-table">
-                        <!-- Pre-filled row for the logged-in user -->
-                        <tr>
-                            <td>
-                                {{ $user->name }} <!-- Display the logged-in user's name -->
-                                <input type="hidden" name="pics[0][user_id]" value="{{ $user->id }}">
-                            </td>
-                            <td>Created By <input type="hidden" name="pics[0][role]" value="CREATOR"></td>
-                            <td>
-                                {{ $user->jabatan ?? 'N/A' }} <!-- Display the logged-in user's jabatan -->
-                                <input type="hidden" name="pics[0][jabatan]"
-                                    value="{{ $user->jabatan ?? '' }}">
-                            </td>
-                            <td>
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="pics[0][digital_signature]"
-                                        value="1" {{ old('pics.0.digital_signature') ? 'checked' : '' }}>
-                                    <label class="form-check-label">Use Digital Signature</label>
-                                </div>
-                            </td>
-                            <td>
-                                <textarea name="pics[0][notes]" placeholder="Enter notes (optional)">{{ old('pics.0.notes') }}</textarea>
-                            </td>
-                            <td></td> <!-- No remove button for the first PIC -->
-                        </tr>
-                        <!-- Dynamically Added PIC Rows -->
-                        @foreach (old('pics', []) as $index => $pic)
-                            @if ($index > 0)
-                                <tr class="pic-entry">
-                                    <td>
-                                        <input type="text" class="form-control" name="pics[{{ $index }}][user_id]"
-                                            value="{{ $pic['user_id'] ?? '' }}" placeholder="User ID">
-                                    </td>
-                                    <td>
-                                        <select name="pics[{{ $index }}][role]" class="form-control">
-                                            <option value="">-- Select Role --</option>
-                                            @foreach (\App\Models\Workflow::getStatuses() as $status)
-                                                <option value="{{ $status['code'] }}"
-                                                    {{ isset($pic['role']) && $pic['role'] == $status['code'] ? 'selected' : '' }}>
-                                                    {{ $status['name'] }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <span class="jabatan-display">{{ $pic['jabatan'] ?? 'N/A' }}</span>
-                                        <input type="hidden" name="pics[{{ $index }}][jabatan]" value="{{ $pic['jabatan'] ?? '' }}">
-                                    </td>
-                                    <td>
-                                        <div class="form-check">
-                                            <input type="checkbox" class="form-check-input"
-                                                name="pics[{{ $index }}][digital_signature]" value="1"
-                                                {{ isset($pic['digital_signature']) && $pic['digital_signature'] ? 'checked' : '' }}>
-                                            <label class="form-check-label">Use Digital Signature</label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <textarea name="pics[{{ $index }}][notes]" placeholder="Enter notes (optional)">{{ $pic['notes'] ?? '' }}</textarea>
-                                    </td>
-                                    <td>
+                        <!-- Existing PICs -->
+                        @foreach ($workflowApprovals as $index => $approval)
+                            @php
+                                $user = \App\Models\User::find($approval->user_id);
+                            @endphp
+                            <tr data-index="{{ $index }}" data-user-id="{{ $approval->user_id }}" data-role-code="{{ $approval->role }}">
+                                <td>
+                                    {{ $user ? $user->name : 'Unknown User' }}
+                                    <input type="hidden" name="pics[{{ $index }}][user_id]" value="{{ $approval->user_id }}">
+                                </td>
+                                <td>
+                                    {{ \App\Models\Workflow::getStatusName($approval->role) }}
+                                    <input type="hidden" name="pics[{{ $index }}][role]" value="{{ $approval->role }}">
+                                </td>
+                                <td>
+                                    <span>{{ $user ? $user->jabatan : 'N/A' }}</span>
+                                    <input type="hidden" name="pics[{{ $index }}][jabatan]" value="{{ $user ? $user->jabatan : '' }}">
+                                </td>
+                                <td>
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" name="pics[{{ $index }}][digital_signature]"
+                                            value="1" {{ $approval->digital_signature ? 'checked' : '' }}>
+                                        <label class="form-check-label">Use Digital Signature</label>
+                                    </div>
+                                </td>
+                                <td>
+                                    <textarea name="pics[{{ $index }}][notes]" placeholder="Enter notes (optional)"
+                                        {{ $approval->user_id != Auth::id() ? 'disabled' : '' }}>{{ $approval->notes }}</textarea>
+                                </td>
+                                <td>
+                                    @if($approval->role !== 'CREATOR')
                                         <button type="button" class="btn btn-danger btn-sm remove-pic">Remove</button>
-                                    </td>
-                                </tr>
-                            @endif
+                                    @endif
+                                </td>
+                            </tr>
                         @endforeach
                     </tbody>
                 </table>
 
                 <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">Submit Workflow</button>
+                    <button type="submit" class="btn btn-primary">Update and Submit Workflow</button>
                     <button type="button" id="save-draft-btn" class="btn btn-secondary ml-2">Save as Draft</button>
+                    <a href="{{ route('workflows.index') }}" class="btn btn-link ml-2">Cancel</a>
                 </div>
             </form>
         </div>
@@ -385,12 +397,12 @@
             const userSelect = $("#user-select");
             const picTable = $("#pic-table");
             const modal = new bootstrap.Modal(document.getElementById("pic-modal"));
-            let picIndex = {{ count(old('pics', [1])) }}; // Start with the next index after existing PICs
+            let picIndex = {{ count($workflowApprovals) }}; // Start with the next index after existing PICs
 
             // Initialize Select2 with AJAX
             userSelect.select2({
                 ajax: {
-                    url: "/workflow-actions/find-users",
+                    url: "/workflows/find-users",
                     dataType: "json",
                     delay: 250,
                     data: function(params) {
@@ -417,7 +429,7 @@
             userSelect.on("select2:select", function(e) {
                 const userId = e.params.data.id;
 
-                $.get("/workflow-actions/fetch-jabatan", {
+                $.get("/workflows/fetch-jabatan", {
                     user_id: userId
                 }, function(response) {
                     if (response.success) {
@@ -472,11 +484,11 @@
 
                     // Enable/disable Notes field based on whether it's the current user
                     const notesField = editingRow.find("td:eq(4) textarea");
-                    const isCurrentUser = (userId == "{{ $user->id }}");
+                    const isCurrentUser = (userId == "{{ Auth::id() }}");
                     notesField.prop("disabled", !isCurrentUser);
                 } else {
                     // Determine if this is the current user
-                    const isCurrentUser = (userId == "{{ $user->id }}");
+                    const isCurrentUser = (userId == "{{ Auth::id() }}");
 
                     // Add new row
                     const newRow = $(`

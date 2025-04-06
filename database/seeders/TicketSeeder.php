@@ -45,30 +45,6 @@ class TicketSeeder extends Seeder
             VALUES (3, 'Revenue Expenditure', 1, 1, NOW(), NOW())
             ");
 
-        // Available roles
-        $roles = [
-            "Creator",
-            "Acknowledger",
-            "Unit Head - Approver",
-            "Reviewer-Maker",
-            "Reviewer-Approver"
-        ];
-
-        // Generate 5 users
-        for ($i = 0; $i < 5; $i++) {
-            try {
-                $role = $faker->randomElement($roles); // Randomly assign roles
-                $nik = $faker->unique()->numerify(str_repeat("#", 16)); // Unique 16-digit NIK
-                $this->addUser($faker->name, $faker->unique()->safeEmail, "password", $role, $nik);
-            } catch (Exception $exception) {
-                continue;
-            }
-
-            // Print progress every 100 users
-            if ($i % 100 === 0) {
-                echo "Seeded $i users...\n";
-            }
-        }
 
         // Ticket categories
         $this->addCategory("Masalah Jaringan");

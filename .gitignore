@@ -5,6 +5,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/database/seeders/telkom_users.json
 /vendor
 .env
 .env.backup

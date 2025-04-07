@@ -280,7 +280,7 @@
 
             <hr>
             <h5>Approval History</h5>
-            <table class="table table-bordered mt-3">
+            <table class="table table-bordered table-responsive mt-3">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -323,32 +323,22 @@
                             <td>
                                 <textarea class="form-control" readonly>{{ $approval->notes ?? 'No notes provided.' }}</textarea>
                             </td>
-                            <!-- Replace just this part in your view -->
                             <td>
-                                <!-- Approvers with status -->
-                                @foreach ($workflow->approvals as $approval)
+                                <!-- Status with appropriate badge -->
+                                <span class="badge badge-{{ $statusColor }}">
+                                    {{ ucfirst($approval->status) }}
+                                </span>
+
+                                <!-- Display the person currently awaiting approval if status is 'PENDING' -->
+                                @if ($approval->status === 'PENDING' && $approval->is_active)
                                     @php
-                                        $user = \App\Models\User::find($approval->user_id);
-
-                                        // Define badge color based on status
-                                        $approvalColor = 'secondary';
-                                        if ($approval->status === 'APPROVED') {
-                                            $approvalColor = 'success';
-                                        } elseif ($approval->status === 'REJECTED') {
-                                            $approvalColor = 'danger';
-                                        } elseif ($approval->status === 'PENDING' && $approval->is_active) {
-                                            $approvalColor = 'warning';
-                                        }
+                                        $pendingUser = $workflow->approvals->where('status', 'PENDING')->first();
+                                        $pendingUserName = $pendingUser
+                                            ? \App\Models\User::find($pendingUser->user_id)->name
+                                            : 'Unknown';
                                     @endphp
-
-                                    <div class="mb-1">
-                                        <span class="badge badge-{{ $approvalColor }}">
-                                            <i class="fas fa-user"></i>
-                                            {{ $user ? $user->name : 'Unknown' }}
-                                            ({{ $approval->role }})
-                                        </span>
-                                    </div>
-                                @endforeach
+                                    <br><small>Waiting on: {{ $pendingUserName }}</small>
+                                @endif
                             </td>
                             <td>
                                 @if ($actionDate)
@@ -365,6 +355,7 @@
                     @endforelse
                 </tbody>
             </table>
+
         </div>
     </div>
 

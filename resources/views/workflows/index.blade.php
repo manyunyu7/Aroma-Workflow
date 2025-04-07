@@ -28,33 +28,40 @@
             background-color: #fd7e14;
             color: white;
         }
+
         .badge-draft {
             background-color: #6c757d;
             color: white;
         }
+
         .badge-completed {
             background-color: #28a745;
             color: white;
         }
+
         .filter-section {
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
             margin-bottom: 15px;
         }
+
         .approval-check {
             color: #28a745;
             font-size: 16px;
         }
+
         .approval-pending {
             color: #fd7e14;
             font-size: 16px;
         }
+
         .approval-name {
             font-size: 12px;
             display: block;
             margin-bottom: 3px;
         }
+
         table.dataTable thead tr.approval-header th {
             text-align: center;
             border-bottom: 1px solid #dee2e6;
@@ -82,7 +89,7 @@
                             @php
                                 $unitKerjas = $workflows->pluck('unit_kerja')->unique()->sort()->values()->all();
                             @endphp
-                            @foreach($unitKerjas as $unit)
+                            @foreach ($unitKerjas as $unit)
                                 <option value="{{ $unit }}">{{ $unit }}</option>
                             @endforeach
                         </select>
@@ -92,9 +99,14 @@
                         <select id="filter_jenis_anggaran" class="form-control">
                             <option value="">-- Semua Jenis Anggaran --</option>
                             @php
-                                $jenisAnggarans = $workflows->pluck('jenisAnggaran.nama')->unique()->sort()->values()->all();
+                                $jenisAnggarans = $workflows
+                                    ->pluck('jenisAnggaran.nama')
+                                    ->unique()
+                                    ->sort()
+                                    ->values()
+                                    ->all();
                             @endphp
-                            @foreach($jenisAnggarans as $jenis)
+                            @foreach ($jenisAnggarans as $jenis)
                                 <option value="{{ $jenis }}">{{ $jenis }}</option>
                             @endforeach
                         </select>
@@ -115,7 +127,8 @@
                     <div class="col-md-8">
                         <div class="form-group">
                             <label for="search">Search</label>
-                            <input type="text" id="search" class="form-control" placeholder="Search by nomor pengajuan, nama kegiatan...">
+                            <input type="text" id="search" class="form-control"
+                                placeholder="Search by nomor pengajuan, nama kegiatan...">
                         </div>
                     </div>
                     <div class="col-md-4 d-flex align-items-end">
@@ -160,111 +173,179 @@
                                 <!-- Creator Column -->
                                 <td>
                                     @php
-                                        $creators = $workflow->approvals->where('role', 'CREATOR');
+                                        $creators = $workflow->approvals->whereIn('role', [
+                                            'CREATOR',
+                                            'Acknowledger',
+                                            'Unit Head - Approver',
+                                        ]);
                                     @endphp
-                                    @foreach($creators as $approval)
+                                    @foreach ($creators as $approval)
                                         @php
                                             $user = \App\Models\User::find($approval->user_id);
                                             $isApproved = $approval->status === 'APPROVED';
+                                            $role = $approval->role;
                                         @endphp
-                                        <span class="approval-name">{{ $user ? $user->name : 'Unknown' }}</span>
-                                        <i class="fas fa-check-circle {{ $isApproved ? 'approval-check' : 'approval-pending' }}"></i>
+                                        <span class="approval-name"
+                                            title="{{ ucfirst($role) }}">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <span
+                                            class="badge
+                          @switch($role)
+                              @case('CREATOR')
+                                  badge-primary
+                                  @break
+                              @case('Acknowledger')
+                                  badge-warning
+                                  @break
+                              @case('Unit Head - Approver')
+                                  badge-success
+                                  @break
+                              @default
+                                  badge-secondary
+                          @endswitch">
+                                            {{ ucfirst($role) }}
+                                        </span>
+                                        @if ($isApproved)
+                                            <i class="fas fa-check-circle approval-check"></i><br>
+                                        @endif
                                     @endforeach
                                 </td>
 
                                 <!-- Disetujui Column (Acknowledger and Unit Head) -->
                                 <td>
                                     @php
-                                        $approvers = $workflow->approvals->whereIn('role', ['Acknowledger', 'Unit Head - Approver']);
+                                        $approvers = $workflow->approvals->whereIn('role', ['Reviewer-Approver']);
                                     @endphp
-                                    @foreach($approvers as $approval)
+                                    @foreach ($approvers as $approval)
                                         @php
                                             $user = \App\Models\User::find($approval->user_id);
                                             $isApproved = $approval->status === 'APPROVED';
+                                            $role = $approval->role;
                                         @endphp
-                                        <span class="approval-name">{{ $user ? $user->name : 'Unknown' }}</span>
-                                        <i class="fas fa-check-circle {{ $isApproved ? 'approval-check' : 'approval-pending' }}"></i><br>
+                                        <span class="approval-name"
+                                            title="{{ ucfirst($role) }}">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <span
+                                            class="badge
+                          @switch($role)
+                              @case('Reviewer-Approver')
+                                  badge-info
+                                  @break
+                              @default
+                                  badge-secondary
+                          @endswitch">
+                                            {{ ucfirst($role) }}
+                                        </span>
+                                        @if ($isApproved)
+                                            <i class="fas fa-check-circle approval-check"></i><br>
+                                        @endif
                                     @endforeach
                                 </td>
 
                                 <!-- Reviewer Column -->
                                 <td>
                                     @php
-                                        $reviewers = $workflow->approvals->whereIn('role', ['Reviewer-Maker', 'Reviewer-Approver']);
+                                        $reviewers = $workflow->approvals->whereIn('role', ['Reviewer-Maker']);
                                     @endphp
-                                    @foreach($reviewers as $approval)
+                                    @foreach ($reviewers as $approval)
                                         @php
                                             $user = \App\Models\User::find($approval->user_id);
                                             $isApproved = $approval->status === 'APPROVED';
+                                            $role = $approval->role;
                                         @endphp
-                                        <span class="approval-name">{{ $user ? $user->name : 'Unknown' }}</span>
-                                        <i class="fas fa-check-circle {{ $isApproved ? 'approval-check' : 'approval-pending' }}"></i><br>
+                                        <span class="approval-name"
+                                            title="{{ ucfirst($role) }}">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <span
+                                            class="badge
+                          @switch($role)
+                              @case('Reviewer-Maker')
+                                  badge-danger
+                                  @break
+                              @default
+                                  badge-secondary
+                          @endswitch">
+                                            {{ ucfirst($role) }}
+                                        </span>
+                                        @if ($isApproved)
+                                            <i class="fas fa-check-circle approval-check"></i><br>
+                                        @endif
                                     @endforeach
                                 </td>
 
                                 <td>
                                     @php
                                         $statusColor = 'secondary';
-                                        switch($workflow->status) {
-                                            case 'WAITING_APPROVAL':
-                                                $statusColor = 'warning';
-                                                break;
-                                            case 'COMPLETED':
-                                                $statusColor = 'success';
-                                                break;
-                                            case 'DRAFT_CREATOR':
-                                            case 'DRAFT_REVIEWER':
-                                                $statusColor = 'secondary';
-                                                break;
-                                            case 'DIGITAL_SIGNING':
-                                                $statusColor = 'primary';
-                                                break;
+                                        $pendingApprovalUser = null;
+
+                                        // Check if the workflow is in "WAITING_APPROVAL" status
+                                        if ($workflow->status === 'WAITING_APPROVAL') {
+                                            $pendingApproval = $workflow->approvals
+                                                ->where('status', 'PENDING')
+                                                ->first();
+                                            if ($pendingApproval) {
+                                                $pendingApprovalUser = \App\Models\User::find(
+                                                    $pendingApproval->user_id,
+                                                );
+                                            }
+                                            $statusColor = 'warning';
+                                        } elseif ($workflow->status === 'COMPLETED') {
+                                            $statusColor = 'success';
+                                        } elseif (in_array($workflow->status, ['DRAFT_CREATOR', 'DRAFT_REVIEWER'])) {
+                                            $statusColor = 'secondary';
+                                        } elseif ($workflow->status === 'DIGITAL_SIGNING') {
+                                            $statusColor = 'primary';
                                         }
                                     @endphp
+
                                     <span class="badge badge-{{ $statusColor }}">
                                         {{ $workflow->formatted_status }}
                                     </span>
+                                    @if ($workflow->status === 'WAITING_APPROVAL' && $pendingApprovalUser)
+                                        <br><small>Waiting on: {{ $pendingApprovalUser->name }}</small>
+                                    @endif
 
                                     <!-- Progress bar -->
                                     <div class="progress mt-1" style="height: 5px;">
                                         <div class="progress-bar bg-success" role="progressbar"
-                                             style="width: {{ $workflow->progress_percentage }}%"
-                                             aria-valuenow="{{ $workflow->progress_percentage }}"
-                                             aria-valuemin="0" aria-valuemax="100">
+                                            style="width: {{ $workflow->progress_percentage }}%"
+                                            aria-valuenow="{{ $workflow->progress_percentage }}" aria-valuemin="0"
+                                            aria-valuemax="100">
                                         </div>
                                     </div>
                                 </td>
+
                                 <td>
                                     <div class="btn-group-vertical" role="group">
                                         <a href="{{ route('workflows.show', $workflow->id) }}"
-                                           class="btn btn-info btn-sm"><i class="fas fa-eye"></i> View</a>
+                                            class="btn btn-info btn-sm"><i class="fas fa-eye"></i> View</a>
 
-                                        @if($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
+                                        @if ($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
                                             <a href="{{ route('workflows.edit', $workflow->id) }}"
-                                               class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Edit</a>
+                                                class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Edit</a>
                                         @endif
 
                                         <a href="{{ route('workflows.show', $workflow->id) }}#review"
-                                           class="btn btn-primary btn-sm"><i class="fas fa-comment"></i> Review</a>
+                                            class="btn btn-primary btn-sm"><i class="fas fa-comment"></i> Review</a>
 
-                                        @if($workflow->status === 'WAITING_APPROVAL')
+                                        @if ($workflow->status === 'WAITING_APPROVAL')
                                             @php
                                                 // Check if current user has an active approval
-                                                $hasActiveApproval = $workflow->approvals->where('user_id', Auth::id())
-                                                                    ->where('is_active', 1)
-                                                                    ->where('status', 'PENDING')
-                                                                    ->isNotEmpty();
+                                                $hasActiveApproval = $workflow->approvals
+                                                    ->where('user_id', Auth::id())
+                                                    ->where('is_active', 1)
+                                                    ->where('status', 'PENDING')
+                                                    ->isNotEmpty();
                                             @endphp
 
-                                            @if($hasActiveApproval)
+                                            @if ($hasActiveApproval)
                                                 <a href="{{ route('workflows.show', $workflow->id) }}#approval"
-                                                   class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i> Approve</a>
+                                                    class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i>
+                                                    Approve</a>
                                             @endif
                                         @endif
 
-                                        @if($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
+                                        @if ($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
                                             <form action="{{ route('workflows.destroy', $workflow->id) }}" method="POST"
-                                                  class="mt-1" onsubmit="return confirm('Are you sure you want to delete this draft?');">
+                                                class="mt-1"
+                                                onsubmit="return confirm('Are you sure you want to delete this draft?');">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-danger btn-sm">
@@ -280,6 +361,10 @@
                                 <td colspan="11" class="text-center">Tidak ada data workflow.</td>
                             </tr>
                         @endforelse
+
+
+
+
                     </tbody>
                 </table>
             </div>
@@ -301,10 +386,17 @@
                 serverSide: false,
                 dom: 'lBfrtip',
                 buttons: ['copy', 'excel', 'pdf', 'print'],
-                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-                order: [[0, 'asc']], // Sort by No column by default
-                columnDefs: [
-                    { orderable: false, targets: [6, 7, 8, 10] } // Disable sorting on approval and action columns
+                lengthMenu: [
+                    [10, 25, 50, -1],
+                    [10, 25, 50, "All"]
+                ],
+                order: [
+                    [0, 'asc']
+                ], // Sort by No column by default
+                columnDefs: [{
+                        orderable: false,
+                        targets: [6, 7, 8, 10]
+                    } // Disable sorting on approval and action columns
                 ]
             });
 

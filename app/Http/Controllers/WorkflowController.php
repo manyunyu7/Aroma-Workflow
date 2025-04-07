@@ -182,6 +182,52 @@ class WorkflowController extends Controller
         return response()->json($users);
     }
 
+
+    /**
+     * Generate a unique nomor pengajuan with format: YearMonth-UnitNumber-RunningNumber
+     *
+     * @param string $unitKerja The unit kerja code or name
+     * @return string The generated nomor pengajuan
+     */
+    private function generateNomorPengajuan($unitKerja)
+    {
+        // Get current year and month
+        $yearMonth = date('Ym');
+
+        // Generate unit number (you can modify this logic as needed)
+        // For example, using first 3 characters of unit kerja or a predefined mapping
+        $unitNumber = substr(preg_replace('/[^a-zA-Z0-9]/', '', $unitKerja), 0, 3);
+        $unitNumber = strtoupper($unitNumber);
+
+        // Use a database transaction with locking to prevent race conditions
+        return DB::transaction(function () use ($yearMonth, $unitNumber) {
+            // Lock the workflows table to prevent concurrent access
+            // Using FOR UPDATE causes the query to wait until any locks are released
+            $lastWorkflow = DB::table('workflows')
+                ->where('nomor_pengajuan', 'like', $yearMonth . '-' . $unitNumber . '-%')
+                ->orderByRaw('CAST(SUBSTRING_INDEX(nomor_pengajuan, "-", -1) AS UNSIGNED) DESC')
+                ->lockForUpdate()
+                ->first();
+
+            $runningNumber = 1;
+
+            if ($lastWorkflow) {
+                // Extract the running number from the last nomor pengajuan
+                $parts = explode('-', $lastWorkflow->nomor_pengajuan);
+                $lastRunningNumber = intval(end($parts));
+                $runningNumber = $lastRunningNumber + 1;
+            }
+
+            // Format the running number with leading zeros (e.g., 001, 023, 158)
+            $formattedRunningNumber = str_pad($runningNumber, 3, '0', STR_PAD_LEFT);
+
+            // Construct the nomor pengajuan
+            $nomorPengajuan = $yearMonth . '-' . $unitNumber . '-' . $formattedRunningNumber;
+
+            return $nomorPengajuan;
+        }, 5); // Retry up to 5 times if a deadlock occurs
+    }
+
     public function store(Request $request)
     {
         // Get valid status codes from your model
@@ -189,12 +235,13 @@ class WorkflowController extends Controller
 
         try {
             $validated = $request->validate([
-                'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan',
+                // 'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan',
                 'unit_kerja'         => 'required|string',
                 'cost_center'        => 'required|string',
                 'nama_kegiatan'      => 'required|string',
                 'deskripsi_kegiatan' => 'nullable|string', // New field
                 'jenis_anggaran'     => 'required|string',
+                'creation_date'     => 'required|string',
                 'total_nilai'        => 'required|numeric|min:0',
                 'waktu_penggunaan'   => 'required|date',
                 'account'            => 'required|string',
@@ -220,11 +267,14 @@ class WorkflowController extends Controller
 
         DB::beginTransaction();
         try {
+            // Generate unique nomor pengajuan
+            $nomorPengajuan = $this->generateNomorPengajuan($validated['unit_kerja']);
             $workflow = new Workflow();
             $workflow->fill([
-                'nomor_pengajuan' => $validated['nomor_pengajuan'],
+                'nomor_pengajuan' => $nomorPengajuan,
                 'unit_kerja' => $validated['unit_kerja'],
                 'cost_center' => $validated['cost_center'],
+                'creation_date' => $validated['creation_date'],
                 'nama_kegiatan' => $validated['nama_kegiatan'],
                 'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'] ?? null, // New field
                 'jenis_anggaran' => $validated['jenis_anggaran'],

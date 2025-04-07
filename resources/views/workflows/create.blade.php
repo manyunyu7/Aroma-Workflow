@@ -83,10 +83,16 @@
                 <div class="row">
                     <!-- Bagian 1 -->
                     <div class="col-md-6 col-12">
-                        <div class="form-group">
+                        <div class="form-group d-none">
                             <label>Nomor Pengajuan</label>
-                            <input type="text" class="form-control" required name="nomor_pengajuan"
+                            <input type="text" class="form-control" name="nomor_pengajuan"
                                 placeholder="Nomor Pengajuan" value="{{ old('nomor_pengajuan') }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tanggal Pembuatan</label>
+                            <input type="text" class="form-control" name="creation_date"
+                                value="{{ \Carbon\Carbon::now()->format('Y-m-d H:i:s') }}" readonly>
                         </div>
 
                         @php

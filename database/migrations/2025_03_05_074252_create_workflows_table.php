@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->text('account')->nullable();
             $table->text('justification_form')->nullable();
             $table->text('cost_center')->nullable();
+            $table->dateTime('creation_date')->nullable(); // Use nullable() if the field is optional
 
             // Add status column with UPPERCASE values
             $table->enum('status', [

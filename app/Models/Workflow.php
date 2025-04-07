@@ -16,6 +16,7 @@ class Workflow extends Model
         'unit_kerja',
         'nama_kegiatan',
         'jenis_anggaran',
+        'creation_date',
         'total_nilai',
         'deskripsi_kegiatan',
         'cost_center',

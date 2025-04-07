@@ -80,34 +80,84 @@ class Workflow extends Model
     }
 
     /**
-     * Get the list of statuses with code and name.
-     *
-     * @return array
+     * Get available workflow statuses with their codes and names
+     * This method retrieves unique roles from the UserRole model
      */
-    public static function getStatuses(): array
+    public static function getStatuses()
     {
+        // Try to get unique roles from the UserRole model
+        try {
+            $roles = UserRole::select('role')
+                ->distinct()
+                ->whereNotNull('role')
+                ->where('role', '!=', '')
+                ->get();
+
+            // If roles found in database, map them to the required format
+            if ($roles->count() > 0) {
+                return $roles->map(function ($roleObj) {
+                    $roleName = $roleObj->role;
+                    // Generate a code version of the name (for internal use)
+                    $code = strtoupper(str_replace([' ', '-'], '_', $roleName));
+
+                    return [
+                        'code' => $code,
+                        'name' => $roleName
+                    ];
+                })->toArray();
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error fetching roles from UserRole model: ' . $e->getMessage());
+            // If any error occurs, fall back to default roles
+        }
+
+        // Default roles (fallback)
         return [
-            ['code' => 'CREATOR', 'name' => 'Created By'],
-            ['code' => 'ACKNOWLEDGED_BY_SPV', 'name' => 'Acknowledge by Spv (if any)'],
-            ['code' => 'APPROVED_BY_HEAD_UNIT', 'name' => 'Approval by Head Unit'],
-            ['code' => 'REVIEWED_BY_MAKER', 'name' => 'Reviewer-Maker'],
-            ['code' => 'REVIEWED_BY_APPROVER', 'name' => 'Reviewer-Approver'],
+            [
+                'code' => 'CREATOR',
+                'name' => 'Creator'
+            ],
+            [
+                'code' => 'ACKNOWLEDGER',
+                'name' => 'Acknowledger'
+            ],
+            [
+                'code' => 'UNIT_HEAD_APPROVER',
+                'name' => 'Unit Head - Approver'
+            ],
+            [
+                'code' => 'REVIEWER_MAKER',
+                'name' => 'Reviewer-Maker'
+            ],
+            [
+                'code' => 'REVIEWER_APPROVER',
+                'name' => 'Reviewer-Approver'
+            ]
         ];
     }
 
     /**
-     * Get the name of a status by its code.
-     *
-     * @param string $code
-     * @return string|null
+     * Get status name from status code
      */
-    public static function getStatusName(string $code): ?string
+    public static function getStatusName($code)
     {
-        $statuses = self::getStatuses();
-        $status = collect($statuses)->firstWhere('code', $code);
-        return $status['name'] ?? null;
-    }
+        // For codes stored in the database that match the display names directly
+        if (in_array($code, ['Creator', 'Acknowledger', 'Unit Head - Approver', 'Reviewer-Maker', 'Reviewer-Approver'])) {
+            return $code;
+        }
 
+        // For old-style codes, provide mapping
+        $roleNames = [
+            'CREATOR' => 'Creator',
+            'ACKNOWLEDGED_BY_SPV' => 'Acknowledger',
+            'APPROVED_BY_HEAD_UNIT' => 'Unit Head - Approver',
+            'REVIEWED_BY_MAKER' => 'Reviewer-Maker',
+            'REVIEWED_BY_APPROVER' => 'Reviewer-Approver'
+        ];
+
+        // Return mapped name if available, otherwise return the code itself
+        return $roleNames[$code] ?? $code;
+    }
     /**
      * Get formatted status for display.
      */

@@ -42,6 +42,25 @@
             border-radius: 5px;
             margin-bottom: 15px;
         }
+        .approval-check {
+            color: #28a745;
+            font-size: 16px;
+        }
+        .approval-pending {
+            color: #fd7e14;
+            font-size: 16px;
+        }
+        .approval-name {
+            font-size: 12px;
+            display: block;
+            margin-bottom: 3px;
+        }
+        table.dataTable thead tr.approval-header th {
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: normal;
+            padding: 5px;
+        }
     </style>
 @endpush
 
@@ -109,28 +128,80 @@
                 <table id="table_data" class="table table-hover table-bordered display no-wrap" style="width:100%">
                     <thead>
                         <tr>
-                            <th>No</th>
-                            <th>Nomor Pengajuan</th>
-                            <th>Unit Kerja</th>
-                            <th>Nama Kegiatan</th>
-                            <th>Jenis Anggaran</th>
-                            <th>Total Nilai</th>
-                            <th>Tanggal</th>
-                            <th>Status</th>
-                            <th>Approvers</th>
-                            <th>Aksi</th>
+                            <th rowspan="2">No</th>
+                            <th rowspan="2">Nama Kegiatan</th>
+                            <th rowspan="2">Jenis Anggaran</th>
+                            <th rowspan="2">Total Nilai</th>
+                            <th rowspan="2">Waktu Penggunaan</th>
+                            <th rowspan="2">Cost Center</th>
+                            <th rowspan="2">Creator</th>
+                            <th colspan="2" class="text-center">Approval</th>
+                            <th rowspan="2">Status</th>
+                            <th rowspan="2">Action</th>
+                        </tr>
+                        <tr class="approval-header">
+                            <th>Disetujui</th>
+                            <th>Reviewer</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($workflows as $workflow)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $workflow->nomor_pengajuan }}</td>
-                                <td>{{ $workflow->unit_kerja }}</td>
-                                <td>{{ $workflow->nama_kegiatan }}</td>
+                                <td>
+                                    <strong>{{ $workflow->nomor_pengajuan }}</strong><br>
+                                    {{ $workflow->nama_kegiatan }}
+                                </td>
                                 <td>{{ $workflow->jenisAnggaran->nama ?? 'N/A' }}</td>
                                 <td>{{ number_format($workflow->total_nilai, 0, ',', '.') }}</td>
-                                <td>{{ $workflow->created_at->format('d M Y') }}</td>
+                                <td>{{ \Carbon\Carbon::parse($workflow->waktu_penggunaan)->format('M-Y') }}</td>
+                                <td>{{ $workflow->cost_center }}</td>
+
+                                <!-- Creator Column -->
+                                <td>
+                                    @php
+                                        $creators = $workflow->approvals->where('role', 'CREATOR');
+                                    @endphp
+                                    @foreach($creators as $approval)
+                                        @php
+                                            $user = \App\Models\User::find($approval->user_id);
+                                            $isApproved = $approval->status === 'APPROVED';
+                                        @endphp
+                                        <span class="approval-name">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <i class="fas fa-check-circle {{ $isApproved ? 'approval-check' : 'approval-pending' }}"></i>
+                                    @endforeach
+                                </td>
+
+                                <!-- Disetujui Column (Acknowledger and Unit Head) -->
+                                <td>
+                                    @php
+                                        $approvers = $workflow->approvals->whereIn('role', ['Acknowledger', 'Unit Head - Approver']);
+                                    @endphp
+                                    @foreach($approvers as $approval)
+                                        @php
+                                            $user = \App\Models\User::find($approval->user_id);
+                                            $isApproved = $approval->status === 'APPROVED';
+                                        @endphp
+                                        <span class="approval-name">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <i class="fas fa-check-circle {{ $isApproved ? 'approval-check' : 'approval-pending' }}"></i><br>
+                                    @endforeach
+                                </td>
+
+                                <!-- Reviewer Column -->
+                                <td>
+                                    @php
+                                        $reviewers = $workflow->approvals->whereIn('role', ['Reviewer-Maker', 'Reviewer-Approver']);
+                                    @endphp
+                                    @foreach($reviewers as $approval)
+                                        @php
+                                            $user = \App\Models\User::find($approval->user_id);
+                                            $isApproved = $approval->status === 'APPROVED';
+                                        @endphp
+                                        <span class="approval-name">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <i class="fas fa-check-circle {{ $isApproved ? 'approval-check' : 'approval-pending' }}"></i><br>
+                                    @endforeach
+                                </td>
+
                                 <td>
                                     @php
                                         $statusColor = 'secondary';
@@ -164,67 +235,49 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <!-- Approvers with status -->
-                                    @foreach ($workflow->approvals as $approval)
-                                        @php
-                                            $user = \App\Models\User::find($approval->user_id);
+                                    <div class="btn-group-vertical" role="group">
+                                        <a href="{{ route('workflows.show', $workflow->id) }}"
+                                           class="btn btn-info btn-sm"><i class="fas fa-eye"></i> View</a>
 
-                                            // Define badge color based on status
-                                            $approvalColor = 'secondary';
-                                            if ($approval->status === 'APPROVED') {
-                                                $approvalColor = 'success';
-                                            } elseif ($approval->status === 'REJECTED') {
-                                                $approvalColor = 'danger';
-                                            } elseif ($approval->status === 'PENDING' && $approval->is_active) {
-                                                $approvalColor = 'warning';
-                                            }
-                                        @endphp
-
-                                        <div class="mb-1">
-                                            <span class="badge badge-{{ $approvalColor }}">
-                                                <i class="fas fa-user"></i>
-                                                {{ $user ? $user->name : 'Unknown' }}
-                                                ({{ \App\Models\Workflow::getStatusName($approval->role) }})
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </td>
-                                <td>
-                                    <a href="{{ route('workflows.show', $workflow->id) }}"
-                                        class="btn btn-info btn-sm"><i class="fas fa-eye"></i> View</a>
-
-                                    @if($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
-                                        <a href="{{ route('workflows.edit', $workflow->id) }}"
-                                            class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Edit</a>
-                                        <form action="{{ route('workflows.destroy', $workflow->id) }}" method="POST"
-                                              class="d-inline" onsubmit="return confirm('Are you sure you want to delete this draft?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        </form>
-                                    @endif
-
-                                    @if($workflow->status === 'WAITING_APPROVAL')
-                                        @php
-                                            // Check if current user has an active approval
-                                            $hasActiveApproval = $workflow->approvals->where('user_id', Auth::id())
-                                                                 ->where('is_active', 1)
-                                                                 ->where('status', 'PENDING')
-                                                                 ->isNotEmpty();
-                                        @endphp
-
-                                        @if($hasActiveApproval)
-                                            <a href="{{ route('workflows.show', $workflow->id) }}#approval"
-                                               class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i> Approve</a>
+                                        @if($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
+                                            <a href="{{ route('workflows.edit', $workflow->id) }}"
+                                               class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> Edit</a>
                                         @endif
-                                    @endif
+
+                                        <a href="{{ route('workflows.show', $workflow->id) }}#review"
+                                           class="btn btn-primary btn-sm"><i class="fas fa-comment"></i> Review</a>
+
+                                        @if($workflow->status === 'WAITING_APPROVAL')
+                                            @php
+                                                // Check if current user has an active approval
+                                                $hasActiveApproval = $workflow->approvals->where('user_id', Auth::id())
+                                                                    ->where('is_active', 1)
+                                                                    ->where('status', 'PENDING')
+                                                                    ->isNotEmpty();
+                                            @endphp
+
+                                            @if($hasActiveApproval)
+                                                <a href="{{ route('workflows.show', $workflow->id) }}#approval"
+                                                   class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i> Approve</a>
+                                            @endif
+                                        @endif
+
+                                        @if($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
+                                            <form action="{{ route('workflows.destroy', $workflow->id) }}" method="POST"
+                                                  class="mt-1" onsubmit="return confirm('Are you sure you want to delete this draft?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center">Tidak ada data workflow.</td>
+                                <td colspan="11" class="text-center">Tidak ada data workflow.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -249,7 +302,10 @@
                 dom: 'lBfrtip',
                 buttons: ['copy', 'excel', 'pdf', 'print'],
                 lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
-                order: [[6, 'desc']] // Sort by date column by default
+                order: [[0, 'asc']], // Sort by No column by default
+                columnDefs: [
+                    { orderable: false, targets: [6, 7, 8, 10] } // Disable sorting on approval and action columns
+                ]
             });
 
             // Filter function
@@ -264,11 +320,10 @@
                 // Apply filters using custom filtering
                 $.fn.dataTable.ext.search.push(
                     function(settings, data, dataIndex) {
-                        const rowUnitKerja = data[2].toLowerCase(); // Unit Kerja column
-                        const rowJenisAnggaran = data[4].toLowerCase(); // Jenis Anggaran column
-                        const rowStatus = data[7]; // Status column (contains HTML)
-                        const rowNomor = data[1].toLowerCase(); // Nomor Pengajuan column
-                        const rowNamaKegiatan = data[3].toLowerCase(); // Nama Kegiatan column
+                        const rowUnitKerja = data[5].toLowerCase(); // Cost Center column
+                        const rowJenisAnggaran = data[2].toLowerCase(); // Jenis Anggaran column
+                        const rowStatus = data[9]; // Status column (contains HTML)
+                        const rowNamaKegiatan = data[1].toLowerCase(); // Nama Kegiatan column
 
                         // Check if row status contains our status value
                         const statusMatch = status === '' || rowStatus.includes(status);
@@ -280,9 +335,7 @@
                         const jenisMatch = jenisAnggaran === '' || rowJenisAnggaran.includes(jenisAnggaran);
 
                         // Check search text match
-                        const searchMatch = search === '' ||
-                            rowNomor.includes(search) ||
-                            rowNamaKegiatan.includes(search);
+                        const searchMatch = search === '' || rowNamaKegiatan.includes(search);
 
                         return statusMatch && unitMatch && jenisMatch && searchMatch;
                     }

@@ -18,7 +18,7 @@
             <div class="customize-input float-right">
                 <a href="{{ route('workflows.index') }}" class="btn btn-secondary">Back to List</a>
 
-                @if($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
+                @if ($workflow->status === 'DRAFT_CREATOR' && $workflow->created_by === Auth::id())
                     <a href="{{ route('workflows.edit', $workflow->id) }}" class="btn btn-warning">Edit Draft</a>
                 @endif
             </div>
@@ -81,7 +81,8 @@
             <div class="d-flex justify-content-between mb-3">
                 <h3 class="card-title">Justification Form Details</h3>
                 <span class="badge badge-{{ $workflow->status_color }} status-badge">
-                    {{ $workflow->formatted_status }} {{$canApprove ? '(You can approve this workflow)' : 'Anda Tidak Berhak Approve'}}
+                    {{ $workflow->formatted_status }}
+                    {{ $canApprove ? '(You can approve this workflow)' : 'Anda Tidak Berhak Approve' }}
                 </span>
             </div>
 
@@ -89,9 +90,8 @@
             <div class="workflow-progress">
                 <div class="progress">
                     <div class="progress-bar bg-success" role="progressbar"
-                         style="width: {{ $workflow->progress_percentage }}%"
-                         aria-valuenow="{{ $workflow->progress_percentage }}"
-                         aria-valuemin="0" aria-valuemax="100">
+                        style="width: {{ $workflow->progress_percentage }}%"
+                        aria-valuenow="{{ $workflow->progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
                         {{ $workflow->progress_percentage }}%
                     </div>
                 </div>
@@ -139,31 +139,41 @@
                     </div>
                     <div class="form-group">
                         <label>Total Nilai</label>
-                        <input type="text" class="form-control" value="{{ 'Rp ' . number_format($workflow->total_nilai, 0, ',', '.') }}" readonly>
+                        <input type="text" class="form-control"
+                            value="{{ 'Rp ' . number_format($workflow->total_nilai, 0, ',', '.') }}" readonly>
                     </div>
                     <div class="form-group">
                         <label>Waktu Penggunaan</label>
-                        <input type="date" class="form-control" value="{{ $workflow->waktu_penggunaan->format('Y-m-d') }}" readonly>
+                        <input type="date" class="form-control"
+                            value="{{ $workflow->waktu_penggunaan->format('Y-m-d') }}" readonly>
                     </div>
                     <div class="form-group">
                         <label>Account</label>
                         <select class="form-control" disabled>
                             <option value="" disabled>-- Select Account --</option>
                             <optgroup label="Assets">
-                                <option value="1001" {{ $workflow->account == '1001' ? 'selected' : '' }}>1001 - Cash & Bank</option>
-                                <option value="1002" {{ $workflow->account == '1002' ? 'selected' : '' }}>1002 - Accounts Receivable</option>
+                                <option value="1001" {{ $workflow->account == '1001' ? 'selected' : '' }}>1001 - Cash &
+                                    Bank</option>
+                                <option value="1002" {{ $workflow->account == '1002' ? 'selected' : '' }}>1002 - Accounts
+                                    Receivable</option>
                             </optgroup>
                             <optgroup label="Liabilities">
-                                <option value="2001" {{ $workflow->account == '2001' ? 'selected' : '' }}>2001 - Accounts Payable</option>
-                                <option value="2002" {{ $workflow->account == '2002' ? 'selected' : '' }}>2002 - Bank Loans</option>
+                                <option value="2001" {{ $workflow->account == '2001' ? 'selected' : '' }}>2001 - Accounts
+                                    Payable</option>
+                                <option value="2002" {{ $workflow->account == '2002' ? 'selected' : '' }}>2002 - Bank
+                                    Loans</option>
                             </optgroup>
                             <optgroup label="Revenue">
-                                <option value="3001" {{ $workflow->account == '3001' ? 'selected' : '' }}>3001 - Broadband Services Revenue</option>
-                                <option value="3002" {{ $workflow->account == '3002' ? 'selected' : '' }}>3002 - Enterprise Solutions Revenue</option>
+                                <option value="3001" {{ $workflow->account == '3001' ? 'selected' : '' }}>3001 -
+                                    Broadband Services Revenue</option>
+                                <option value="3002" {{ $workflow->account == '3002' ? 'selected' : '' }}>3002 -
+                                    Enterprise Solutions Revenue</option>
                             </optgroup>
                             <optgroup label="Expenses">
-                                <option value="5001" {{ $workflow->account == '5001' ? 'selected' : '' }}>5001 - Network Maintenance</option>
-                                <option value="5002" {{ $workflow->account == '5002' ? 'selected' : '' }}>5002 - Marketing & Sales</option>
+                                <option value="5001" {{ $workflow->account == '5001' ? 'selected' : '' }}>5001 - Network
+                                    Maintenance</option>
+                                <option value="5002" {{ $workflow->account == '5002' ? 'selected' : '' }}>5002 -
+                                    Marketing & Sales</option>
                             </optgroup>
                         </select>
                     </div>
@@ -210,7 +220,8 @@
                                             @endif
                                         </div>
                                         <div>
-                                            <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info" target="_blank">
+                                            <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info"
+                                                target="_blank">
                                                 <i class="fas fa-eye"></i> View
                                             </a>
                                         </div>
@@ -228,7 +239,8 @@
                             <h5>Approval Action</h5>
                             <hr>
 
-                            <form action="{{ route('workflows.approve', $workflow->id) }}" method="post" id="approvalForm" enctype="multipart/form-data">
+                            <form action="{{ route('workflows.approve', $workflow->id) }}" method="post" id="approvalForm"
+                                enctype="multipart/form-data">
                                 @csrf
 
                                 <div class="form-group">
@@ -237,18 +249,22 @@
                                 </div>
 
                                 <div class="form-check mb-3">
-                                    <input type="checkbox" class="form-check-input" id="digital_signature" name="digital_signature" value="1">
+                                    <input type="checkbox" class="form-check-input" id="digital_signature"
+                                        name="digital_signature" value="1">
                                     <label class="form-check-label" for="digital_signature">Use Digital Signature</label>
                                 </div>
 
                                 <div class="form-group">
                                     <label for="documents">Attach Documents (Optional)</label>
-                                    <input type="file" class="form-control-file" id="documents" name="documents[]" multiple>
-                                    <small class="form-text text-muted">You can attach additional documents to support your decision.</small>
+                                    <input type="file" class="form-control-file" id="documents" name="documents[]"
+                                        multiple>
+                                    <small class="form-text text-muted">You can attach additional documents to support your
+                                        decision.</small>
                                 </div>
 
                                 <div class="d-flex justify-content-between mt-3">
-                                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#rejectModal">
+                                    <button type="button" class="btn btn-danger" data-toggle="modal"
+                                        data-target="#rejectModal">
                                         <i class="fas fa-times-circle"></i> Reject
                                     </button>
 
@@ -301,19 +317,38 @@
                         @endphp
                         <tr>
                             <td>{{ $user ? $user->name : 'Unknown User' }}</td>
-                            <td>{{ \App\Models\Workflow::getStatusName($approval->role) }}</td>
+                            <td>{{ $approval->role }}</td>
                             <td>{{ $user ? $user->jabatan : 'N/A' }}</td>
                             <td>{{ $approval->digital_signature ? 'Yes' : 'No' }}</td>
                             <td>
                                 <textarea class="form-control" readonly>{{ $approval->notes ?? 'No notes provided.' }}</textarea>
                             </td>
+                            <!-- Replace just this part in your view -->
                             <td>
-                                <span class="badge badge-{{ $statusColor }}">
-                                    {{ $approval->status }}
-                                    @if ($approval->is_active && $approval->status === 'PENDING')
-                                        (ACTIVE)
-                                    @endif
-                                </span>
+                                <!-- Approvers with status -->
+                                @foreach ($workflow->approvals as $approval)
+                                    @php
+                                        $user = \App\Models\User::find($approval->user_id);
+
+                                        // Define badge color based on status
+                                        $approvalColor = 'secondary';
+                                        if ($approval->status === 'APPROVED') {
+                                            $approvalColor = 'success';
+                                        } elseif ($approval->status === 'REJECTED') {
+                                            $approvalColor = 'danger';
+                                        } elseif ($approval->status === 'PENDING' && $approval->is_active) {
+                                            $approvalColor = 'warning';
+                                        }
+                                    @endphp
+
+                                    <div class="mb-1">
+                                        <span class="badge badge-{{ $approvalColor }}">
+                                            <i class="fas fa-user"></i>
+                                            {{ $user ? $user->name : 'Unknown' }}
+                                            ({{ $approval->role }})
+                                        </span>
+                                    </div>
+                                @endforeach
                             </td>
                             <td>
                                 @if ($actionDate)
@@ -334,7 +369,8 @@
     </div>
 
     <!-- Reject Modal -->
-    <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog" aria-labelledby="rejectModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -344,24 +380,28 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form action="{{ route('workflows.reject', $workflow->id) }}" method="post" id="rejectForm" enctype="multipart/form-data">
+                    <form action="{{ route('workflows.reject', $workflow->id) }}" method="post" id="rejectForm"
+                        enctype="multipart/form-data">
                         @csrf
 
                         <div class="form-group">
                             <label for="reject_notes">Rejection Reason <span class="text-danger">*</span></label>
-                            <textarea name="notes" id="reject_notes" class="form-control" rows="4" required placeholder="Please provide a reason for rejection..."></textarea>
+                            <textarea name="notes" id="reject_notes" class="form-control" rows="4" required
+                                placeholder="Please provide a reason for rejection..."></textarea>
                             <small class="form-text text-muted">This will be visible to the workflow creator.</small>
                         </div>
 
                         <div class="form-group">
                             <label for="reject_documents">Attach Documents (Optional)</label>
-                            <input type="file" class="form-control-file" id="reject_documents" name="documents[]" multiple>
+                            <input type="file" class="form-control-file" id="reject_documents" name="documents[]"
+                                multiple>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').submit();">
+                    <button type="button" class="btn btn-danger"
+                        onclick="document.getElementById('rejectForm').submit();">
                         Reject Workflow
                     </button>
                 </div>
@@ -374,7 +414,7 @@
     <script>
         $(document).ready(function() {
             // Transfer notes to rejection form if any were entered
-            $('#rejectModal').on('show.bs.modal', function () {
+            $('#rejectModal').on('show.bs.modal', function() {
                 const approvalNotes = $('#notes').val();
                 if (approvalNotes) {
                     $('#reject_notes').val(approvalNotes);

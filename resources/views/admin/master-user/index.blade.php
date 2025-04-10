@@ -52,6 +52,7 @@
 
             <div class="table-responsive">
                 <table id="table_data" class="table table-sm table-hover table-bordered display compact" style="width:100%">
+                    <!-- Add this to the thead section in the index view -->
                     <thead>
                         <tr>
                             <th>No</th>
@@ -74,7 +75,21 @@
                                 <td>{{ $index + 1 }}</td>
                                 <td>
                                     @foreach ($user->roles as $role)
-                                        <span class="badge badge-info">{{ $role->role }}</span>
+                                        <div class="role-item mb-2">
+                                            <span class="badge badge-info">{{ $role->role }}</span>
+                                            @if($role->min_budget !== null || $role->max_budget !== null)
+                                                <div class="budget-range small text-muted mt-1">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                    IDR {{ number_format($role->min_budget ?? 0, 0, ',', '.') }}
+                                                    <i class="fas fa-arrow-right mx-1"></i>
+                                                    @if($role->max_budget !== null)
+                                                        IDR {{ number_format($role->max_budget, 0, ',', '.') }}
+                                                    @else
+                                                        <span class="text-success">Unlimited</span>
+                                                    @endif
+                                                </div>
+                                            @endif
+                                        </div>
                                     @endforeach
                                 </td>
                                 <td>{{ $user->nik }}</td>
@@ -97,7 +112,7 @@
                                     @elseif ($user->edited_by)
                                         {{ $user->edited_by }} <span class="text-warning">(Deleted User)</span>
                                     @else
-                                        {{ $user->creator_name ?? $user->created_by ?? '-' }}
+                                        {{ $user->creator_name ?? ($user->created_by ?? '-') }}
                                     @endif
                                 </td>
                                 <td>

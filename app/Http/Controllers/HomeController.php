@@ -38,7 +38,7 @@ class HomeController extends Controller
                 'Admin' => '/admin/home',
                 'Operator' => '/operator/home',
                 'User' => '/user/home',
-                'Creator' => '/user/home'
+                'Creator' => '/workflows/'
             ];
 
             // Check if current route matches any of the user's roles

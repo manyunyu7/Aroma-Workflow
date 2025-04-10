@@ -51,6 +51,7 @@ Route::post('/user/regis', [RegistrasiController::class, 'store']);
 
 Route::get('hehe', [MasterKaryawanController::class, 'getAllKaryawan']);
 Route::get('hihi', [MasterKaryawanController::class, 'detailKaryawan']);
+Route::get('wkwk', [MasterKaryawanController::class, 'getAllUsers']);
 
 
 // Define your workflow action routes

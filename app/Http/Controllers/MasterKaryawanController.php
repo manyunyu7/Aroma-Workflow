@@ -9,6 +9,31 @@ use Illuminate\Http\Request;
 class MasterKaryawanController extends Controller
 {
 
+    public function getAllUsers(Request $request){
+        // return all users and their roles
+        $users = \App\Models\User::with('roles')->get();
+
+        if($request->grouped_by_role == true){
+            $groupedUsers = [];
+            foreach($users as $user){
+                foreach($user->roles as $role){
+                    $groupedUsers[$role->name][] = $user;
+                }
+            }
+            return response()->json([
+                'state' => 'success',
+                'code' => 200,
+                'data' => $groupedUsers,
+            ]);
+        }
+        // return all users without grouping
+        return response()->json([
+            'state' => 'success',
+            'code' => 200,
+            'data' => $users,
+        ]);
+    }
+
     public function detailKaryawan(Request $request)
     {
         $nik = $request->input('nik');

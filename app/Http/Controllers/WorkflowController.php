@@ -142,7 +142,15 @@ class WorkflowController extends Controller
             ->where('id', '!=', $user->id)
             ->get();
 
-        return view('workflows.create', compact('jenisAnggaran', 'user', 'users'));
+        $userRoles = UserRole::where('user_id', $user->id)->get();
+
+        $compact = compact('jenisAnggaran', 'user', 'users', 'userRoles');
+
+        if($request->dump==true){
+            return $compact;
+        }
+
+        return view('workflows.create', $compact);
     }
 
     public function fetchJabatan(Request $request)
@@ -252,6 +260,8 @@ class WorkflowController extends Controller
                 // 'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
                 'documents'          => 'nullable|array',
                 'documents.*'        => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+                'document_categories.*' => ['required', 'string', Rule::in(['MAIN', 'SUPPORTING'])],
+                'document_types.*'   => ['required', 'string', Rule::in(['JUSTIFICATION_DOC', 'REVIEW_DOC', 'OTHER'])],
                 'is_draft'           => 'nullable|boolean',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -323,7 +333,11 @@ class WorkflowController extends Controller
 
             // Handle multiple document uploads
             if ($request->hasFile('documents')) {
-                foreach ($request->file('documents') as $file) {
+                foreach ($request->file('documents') as $index => $file) {
+                    // Get document category and type for this file
+                    $documentCategory = $request->input('document_categories')[$index] ?? 'SUPPORTING';
+                    $documentType = $request->input('document_types')[$index] ?? 'OTHER';
+
                     // Generate unique filename
                     $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                     $extension = $file->getClientOriginalExtension();
@@ -343,12 +357,14 @@ class WorkflowController extends Controller
                     // Store the relative path
                     $relativePath = "documents/{$workflow->id}/{$uniqueName}";
 
-                    // Create document record
+                    // Create document record with category and type
                     WorkflowDocument::create([
                         'workflow_id' => $workflow->id,
                         'file_path' => $relativePath,
                         'file_name' => $originalName,
                         'file_type' => $extension,
+                        'document_category' => $documentCategory,
+                        'document_type' => $documentType,
                         'uploaded_by' => Auth::id(),
                     ]);
                 }

@@ -4,13 +4,13 @@
         <!-- Sidebar navigation-->
         <nav class="sidebar-nav">
             <ul id="sidebarnav">
-                <li class="sidebar-item">
+                {{-- <li class="sidebar-item">
                     <a class="sidebar-link sidebar-link" href="{{ URL('/home') }}" aria-expanded="false">
                         <img src="{{ asset('img/logo/logo_telkom_akses.png') }}" alt="Logo" class="feather-icon">
                         <span class="hide-menu">Dashboard</span>
                     </a>
-                </li>
-                <li class="list-divider"></li>
+                </li> --}}
+                {{-- <li class="list-divider"></li> --}}
 
                 @if (in_array('Creator', getAuthRole()) || in_array('Admin', getAuthRole()))
                     <li class="nav-small-cap"><span class="hide-menu">Workflow Management</span></li>
@@ -18,14 +18,14 @@
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('workflows.index') }}" aria-expanded="false">
                             <i data-feather="file-text" class="feather-icon"></i>
-                            <span class="hide-menu">List Workflows</span>
+                            <span class="hide-menu">Pengajuan</span>
                         </a>
                     </li>
 
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="{{ route('workflows.create') }}" aria-expanded="false">
                             <i data-feather="plus-circle" class="feather-icon"></i>
-                            <span class="hide-menu">Create Workflow</span>
+                            <span class="hide-menu">Buat Pengajuan</span>
                         </a>
                     </li>
                 @endif
@@ -33,7 +33,7 @@
                 @if (in_array('Admin', getAuthRole()))
                     <li class="nav-small-cap"><span class="hide-menu">Anggaran</span></li>
 
-                    <li class="sidebar-item active">
+                    <li class="sidebar-item active d-none">
                         <a class="sidebar-link" href="{{ route('admin.jenis-anggaran.create') }}" aria-expanded="false">
                             <i data-feather="tag" class="feather-icon"></i>
                             <span class="hide-menu">Tambah Jenis Anggaran</span>
@@ -56,7 +56,7 @@
                         </a>
                     </li>
 
-                    <li class="sidebar-item active">
+                    <li class="sidebar-item active d-none">
                         <a class="sidebar-link" href="{{ route('admin.master-user.create') }}" aria-expanded="false">
                             <i data-feather="user-plus" class="feather-icon"></i>
                             <span class="hide-menu">Add Master User</span>

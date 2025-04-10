@@ -18,6 +18,10 @@ return new class extends Migration
             $table->string('file_name');
             $table->string('file_type');
             $table->foreignId('uploaded_by')->constrained('users');
+
+            $table->enum('document_category', ['MAIN', 'SUPPORTING'])->default('SUPPORTING');
+            $table->enum('document_type', ['JUSTIFICATION_DOC', 'REVIEW_DOC', 'OTHER'])->default('OTHER');
+
             $table->text('notes')->nullable();
             $table->timestamps();
         });

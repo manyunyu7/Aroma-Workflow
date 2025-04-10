@@ -16,6 +16,8 @@ class WorkflowDocument extends Model
         'file_name',
         'file_type',
         'uploaded_by',
+        'document_category',  // New column
+        'document_type',      // New column
         'notes',
     ];
 

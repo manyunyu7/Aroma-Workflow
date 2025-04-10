@@ -85,8 +85,8 @@
                     <div class="col-md-6 col-12">
                         <div class="form-group d-none">
                             <label>Nomor Pengajuan</label>
-                            <input type="text" class="form-control" name="nomor_pengajuan"
-                                placeholder="Nomor Pengajuan" value="{{ old('nomor_pengajuan') }}">
+                            <input type="text" class="form-control" name="nomor_pengajuan" placeholder="Nomor Pengajuan"
+                                value="{{ old('nomor_pengajuan') }}">
                         </div>
 
                         <div class="form-group">
@@ -223,17 +223,17 @@
                     <!-- Bagian 2 -->
                     <div class="col-md-6 col-12">
                         <div class="form-group">
-                            <label>Justification Documents (PDF, DOC, XLS, Images)</label>
+                            <label>Documents (PDF, DOC, XLS, Images)</label>
 
                             <!-- Multiple file upload -->
                             <div class="custom-file">
-                                <input type="file" class="custom-file-input" id="documents" name="documents[]" multiple
-                                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
+                                <input type="file" class="custom-file-input" id="documents" name="documents[]"
+                                    multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png">
                                 <label class="custom-file-label" for="documents">Choose files</label>
                             </div>
 
                             <!-- Document list container -->
-                            <div id="documentList" class="document-list"></div>
+                            <div id="documentList" class="document-list mt-3"></div>
 
                             <script>
                                 document.addEventListener('DOMContentLoaded', function() {
@@ -252,16 +252,35 @@
                                         // Clear previous list
                                         documentList.innerHTML = '';
 
-                                        // Add each file to the list
+                                        // Add each file to the list with category and type selectors
                                         Array.from(this.files).forEach((file, index) => {
                                             const fileSize = (file.size / 1024).toFixed(2) + ' KB';
                                             const fileItem = document.createElement('div');
-                                            fileItem.className = 'document-item';
+                                            fileItem.className = 'document-item card p-3 mb-2';
                                             fileItem.innerHTML = `
-                                                <div>
-                                                    <i class="fas fa-file mr-2"></i>
-                                                    <span>${file.name}</span>
-                                                    <small class="text-muted ml-2">(${fileSize})</small>
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <div>
+                                                        <i class="fas fa-file mr-2"></i>
+                                                        <span>${file.name}</span>
+                                                        <small class="text-muted ml-2">(${fileSize})</small>
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <label for="document_categories_${index}">Category:</label>
+                                                        <select class="form-control" name="document_categories[${index}]" id="document_categories_${index}" required>
+                                                            <option value="MAIN">Main Document</option>
+                                                            <option value="SUPPORTING" selected>Supporting Document</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label for="document_types_${index}">Type:</label>
+                                                        <select class="form-control" name="document_types[${index}]" id="document_types_${index}" required>
+                                                            <option value="JUSTIFICATION_DOC">Justification Document</option>
+                                                            <option value="REVIEW_DOC">Review Document</option>
+                                                            <option value="OTHER" selected>Other</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             `;
                                             documentList.appendChild(fileItem);
@@ -469,7 +488,8 @@
 
                         // Add employees to select
                         data.forEach(employee => {
-                            employeeSelect.append(new Option(employee.name, employee.id, false, false));
+                            employeeSelect.append(new Option(employee.name, employee.id,
+                                false, false));
                         });
                     } else {
                         employeeSelect.append(new Option('No employees found', '', true, true));
@@ -511,13 +531,15 @@
                     if (roles && roles.length > 0) {
                         roles.forEach(function(role) {
                             const displayName = role.role_name || role.role;
-                            roleSelect.append(new Option(displayName, role.role, false, false));
+                            roleSelect.append(new Option(displayName, role.role, false,
+                                false));
                         });
                     } else {
                         // If no roles found, use the default workflow roles
                         @foreach (\App\Models\Workflow::getStatuses() as $status)
                             @if ($status['code'] != 'CREATOR')
-                                roleSelect.append(new Option("{{ $status['name'] }}", "{{ $status['code'] }}", false, false));
+                                roleSelect.append(new Option("{{ $status['name'] }}",
+                                    "{{ $status['code'] }}", false, false));
                             @endif
                         @endforeach
                     }

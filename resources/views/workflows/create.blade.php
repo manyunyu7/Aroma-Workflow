@@ -183,7 +183,7 @@
 
                         <div class="form-group">
                             <label>Waktu Penggunaan</label>
-                            <input type="date" class="form-control" required name="waktu_penggunaan"
+                            <input type="month" class="form-control" required name="waktu_penggunaan"
                                 value="{{ old('waktu_penggunaan') }}">
                         </div>
 

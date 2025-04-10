@@ -97,10 +97,16 @@
                                     @elseif ($user->edited_by)
                                         {{ $user->edited_by }} <span class="text-warning">(Deleted User)</span>
                                     @else
-                                        -
+                                        {{ $user->creator_name ?? $user->created_by ?? '-' }}
                                     @endif
                                 </td>
-                                <td>{{ $user->updated_at != $user->created_at ? $user->updated_at->format('d-M-Y') : '-' }}</td>
+                                <td>
+                                    @if ($user->updated_at != $user->created_at)
+                                        {{ $user->updated_at->format('d-M-Y') }}
+                                    @else
+                                        {{ $user->created_at->format('d-M-Y') }}
+                                    @endif
+                                </td>
                                 <td>
                                     @if ($user->status == 'Active')
                                         <span class="badge badge-success">Active</span>

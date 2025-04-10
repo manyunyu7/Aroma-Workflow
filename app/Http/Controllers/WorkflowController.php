@@ -146,7 +146,7 @@ class WorkflowController extends Controller
 
         $compact = compact('jenisAnggaran', 'user', 'users', 'userRoles');
 
-        if($request->dump==true){
+        if ($request->dump == true) {
             return $compact;
         }
 
@@ -243,26 +243,28 @@ class WorkflowController extends Controller
 
         try {
             $validated = $request->validate([
-                // 'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan',
-                'unit_kerja'         => 'required|string',
-                'cost_center'        => 'required|string',
-                'nama_kegiatan'      => 'required|string',
-                'deskripsi_kegiatan' => 'nullable|string', // New field
-                'jenis_anggaran'     => 'required|string',
-                'creation_date'     => 'required|string',
-                'total_nilai'        => 'required|numeric|min:0',
-                'waktu_penggunaan'   => 'required|date',
-                'account'            => 'required|string',
-                'pics'               => 'required|array',
-                'pics.*.user_id'     => 'required',
-                'pics.*.notes'       => 'nullable|string',
+                // 'nomor_pengajuan'      => 'required|string|unique:workflows,nomor_pengajuan',
+                'unit_kerja'           => 'required|string',
+                'cost_center'          => 'required|string',
+                'nama_kegiatan'        => 'required|string',
+                'deskripsi_kegiatan'   => 'nullable|string',
+                'jenis_anggaran'       => 'required|string',
+                'creation_date'        => 'required|string',
+                'total_nilai'          => 'required|numeric|min:0',
+                'waktu_penggunaan'     => 'required|date',
+                'account'              => 'required|string',
+                'pics'                 => 'required|array',
+                'pics.*.user_id'       => 'required',
+                'pics.*.notes'         => 'nullable|string',
                 'pics.*.digital_signature' => 'nullable|string',
                 // 'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
-                'documents'          => 'nullable|array',
-                'documents.*'        => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+                'documents'            => 'nullable|array',
+                'documents.*'          => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
                 'document_categories.*' => ['required', 'string', Rule::in(['MAIN', 'SUPPORTING'])],
-                'document_types.*'   => ['required', 'string', Rule::in(['JUSTIFICATION_DOC', 'REVIEW_DOC', 'OTHER'])],
-                'is_draft'           => 'nullable|boolean',
+                'document_types.*'     => ['required', 'string', Rule::in(['JUSTIFICATION_DOC', 'REVIEW_DOC', 'OTHER'])],
+                'document_sequence.*'  => 'nullable|integer',
+                'document_notes.*'     => 'nullable|string',
+                'is_draft'             => 'nullable|boolean',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             // Flash uploaded files to session to maintain them between requests
@@ -286,7 +288,7 @@ class WorkflowController extends Controller
                 'cost_center' => $validated['cost_center'],
                 'creation_date' => $validated['creation_date'],
                 'nama_kegiatan' => $validated['nama_kegiatan'],
-                'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'] ?? null, // New field
+                'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'] ?? null,
                 'jenis_anggaran' => $validated['jenis_anggaran'],
                 'total_nilai' => $validated['total_nilai'],
                 'waktu_penggunaan' => $validated['waktu_penggunaan'],
@@ -331,42 +333,48 @@ class WorkflowController extends Controller
                 }
             }
 
-            // Handle multiple document uploads
+            // Handle document uploads
             if ($request->hasFile('documents')) {
-                foreach ($request->file('documents') as $index => $file) {
-                    // Get document category and type for this file
-                    $documentCategory = $request->input('document_categories')[$index] ?? 'SUPPORTING';
-                    $documentType = $request->input('document_types')[$index] ?? 'OTHER';
+                $files = $request->file('documents');
 
-                    // Generate unique filename
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $extension = $file->getClientOriginalExtension();
-                    $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+                // Create directory for this workflow's documents
+                $directory = public_path("documents/{$workflow->id}");
+                if (!file_exists($directory)) {
+                    mkdir($directory, 0777, true);
+                }
 
-                    // Create directory path with workflow ID
-                    $directory = public_path("documents/{$workflow->id}");
+                foreach ($files as $index => $file) {
+                    if ($file && $file->isValid()) {
+                        // Get document metadata for this file
+                        $documentCategory = $request->input("document_categories.$index") ?? 'SUPPORTING';
+                        $documentType = $request->input("document_types.$index") ?? 'OTHER';
+                        $sequence = $request->input("document_sequence.$index") ?? $index;
+                        $notes = $request->input("document_notes.$index") ?? null;
 
-                    // Ensure the directory exists
-                    if (!file_exists($directory)) {
-                        mkdir($directory, 0777, true);
+                        // Generate unique filename
+                        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                        $extension = $file->getClientOriginalExtension();
+                        $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+                        // Move file to the directory
+                        $file->move($directory, $uniqueName);
+
+                        // Store the relative path
+                        $relativePath = "documents/{$workflow->id}/{$uniqueName}";
+
+                        // Create document record
+                        WorkflowDocument::create([
+                            'workflow_id' => $workflow->id,
+                            'file_path' => $relativePath,
+                            'file_name' => $originalName,
+                            'file_type' => $extension,
+                            'document_category' => $documentCategory,
+                            'document_type' => $documentType,
+                            'sequence' => $sequence,
+                            'notes' => $notes,
+                            'uploaded_by' => Auth::id(),
+                        ]);
                     }
-
-                    // Move file to the directory
-                    $file->move($directory, $uniqueName);
-
-                    // Store the relative path
-                    $relativePath = "documents/{$workflow->id}/{$uniqueName}";
-
-                    // Create document record with category and type
-                    WorkflowDocument::create([
-                        'workflow_id' => $workflow->id,
-                        'file_path' => $relativePath,
-                        'file_name' => $originalName,
-                        'file_type' => $extension,
-                        'document_category' => $documentCategory,
-                        'document_type' => $documentType,
-                        'uploaded_by' => Auth::id(),
-                    ]);
                 }
             }
 

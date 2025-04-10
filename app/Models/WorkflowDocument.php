@@ -10,15 +10,17 @@ class WorkflowDocument extends Model
 {
     use HasFactory;
 
+
     protected $fillable = [
         'workflow_id',
         'file_path',
         'file_name',
         'file_type',
         'uploaded_by',
-        'document_category',  // New column
-        'document_type',      // New column
+        'document_category',
+        'document_type',
         'notes',
+        'sequence',
     ];
 
     /**

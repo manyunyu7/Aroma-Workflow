@@ -20,8 +20,8 @@ class ApprovalMatrixSeeder extends Seeder
         // Clear existing data
         ApprovalMatrix::truncate();
 
-        // Define the creator for all seed entries
-        $creator = 'System Seeder';
+        // Use ID 1 for all seeded entries
+        $creatorId = 1;
 
         // Matrix 1: Sampai dengan Rp.500.000.000 (lima ratus juta rupiah)
         ApprovalMatrix::create([
@@ -38,7 +38,7 @@ class ApprovalMatrixSeeder extends Seeder
             ],
             'description' => 'Kewenangan justifikasi kebutuhan untuk anggaran sampai dengan Rp.500.000.000',
             'status' => 'Active',
-            'created_by' => $creator,
+            'created_by' => $creatorId,
         ]);
 
         // Matrix 2: Sampai dengan Rp.3.000.000.000 (tiga miliar rupiah)
@@ -54,7 +54,7 @@ class ApprovalMatrixSeeder extends Seeder
             ],
             'description' => 'Kewenangan justifikasi kebutuhan untuk anggaran sampai dengan Rp.3.000.000.000',
             'status' => 'Active',
-            'created_by' => $creator,
+            'created_by' => $creatorId,
         ]);
 
         // Matrix 3: Sampai dengan Rp.25.000.000.000 (dua puluh lima miliar rupiah)
@@ -72,7 +72,7 @@ class ApprovalMatrixSeeder extends Seeder
             ],
             'description' => 'Kewenangan justifikasi kebutuhan untuk anggaran sampai dengan Rp.25.000.000.000',
             'status' => 'Active',
-            'created_by' => $creator,
+            'created_by' => $creatorId,
         ]);
 
         // Matrix 4: Lebih dari Rp.25.000.000.000 (dua puluh lima miliar rupiah)
@@ -91,7 +91,7 @@ class ApprovalMatrixSeeder extends Seeder
             ],
             'description' => 'Kewenangan justifikasi kebutuhan untuk anggaran lebih dari Rp.25.000.000.000',
             'status' => 'Active',
-            'created_by' => $creator,
+            'created_by' => $creatorId,
         ]);
 
         $this->command->info('Approval Matrix seeded successfully!');

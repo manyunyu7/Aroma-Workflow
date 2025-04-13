@@ -110,17 +110,17 @@
 
                         <div class="form-group">
                             <label>Created By</label>
-                            <input type="text" class="form-control" value="{{ $approvalMatrix->created_by }}" readonly>
+                            <input type="text" class="form-control" value="{{ $approvalMatrix->creator_name }}" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Edited By</label>
+                            <input type="text" class="form-control" value="{{ Auth::user()->name }}" readonly>
                         </div>
 
                         <div class="form-group">
                             <label>Edited Date</label>
                             <input type="text" class="form-control" value="{{ now()->format('d-M-Y') }}" readonly>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Edited By</label>
-                            <input type="text" class="form-control" value="{{ getAuthName() }}" readonly>
                         </div>
 
                         <div class="form-group">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ApprovalMatrix;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ApprovalMatrixController extends Controller
 {
@@ -13,7 +14,7 @@ class ApprovalMatrixController extends Controller
      */
     public function index()
     {
-        $matrices = ApprovalMatrix::orderBy('min_budget')->get();
+        $matrices = ApprovalMatrix::with(['creator', 'editor'])->orderBy('min_budget')->get();
         return view('admin.approval-matrix.index', compact('matrices'));
     }
 
@@ -48,7 +49,7 @@ class ApprovalMatrixController extends Controller
             'approvers' => $request->approvers,
             'description' => $request->description,
             'status' => $request->status,
-            'created_by' => getAuthName(),
+            'created_by' => Auth::id(), // Using ID instead of name
         ]);
 
         return redirect()->route('admin.approval-matrix.index')
@@ -60,6 +61,7 @@ class ApprovalMatrixController extends Controller
      */
     public function edit(ApprovalMatrix $approvalMatrix)
     {
+        $approvalMatrix->load(['creator', 'editor']);
         return view('admin.approval-matrix.edit', compact('approvalMatrix'));
     }
 
@@ -86,7 +88,7 @@ class ApprovalMatrixController extends Controller
             'approvers' => $request->approvers,
             'description' => $request->description,
             'status' => $request->status,
-            'edited_by' => getAuthName(),
+            'edited_by' => Auth::id(), // Using ID instead of name
         ]);
 
         return redirect()->route('admin.approval-matrix.index')

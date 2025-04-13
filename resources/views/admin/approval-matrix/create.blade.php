@@ -118,7 +118,7 @@
 
                         <div class="form-group">
                             <label>Created By</label>
-                            <input type="text" class="form-control" value="{{ getAuthName() }}" readonly>
+                            <input type="text" class="form-control" value="{{ Auth::user()->name }}" readonly>
                         </div>
 
                         <div class="form-group">
@@ -141,7 +141,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-12 col-12">
+                    <div class="col-md-12 col-12 d-none">
                         <div class="card">
                             <div class="card-header bg-primary text-white">
                                 <h5 class="mb-0">Approvers</h5>

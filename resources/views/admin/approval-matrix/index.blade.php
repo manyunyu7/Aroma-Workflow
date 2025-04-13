@@ -76,9 +76,9 @@
                                     @endforeach
                                 </td>
                                 <td>{{ $matrix->description ?? '-' }}</td>
-                                <td>{{ $matrix->created_by }}</td>
+                                <td>{{ $matrix->creator_name }}</td>
                                 <td>{{ $matrix->created_at->format('d-M-Y') }}</td>
-                                <td>{{ $matrix->edited_by ?? $matrix->created_by }}</td>
+                                <td>{{ $matrix->editor_name ?? $matrix->creator_name }}</td>
                                 <td>
                                     @if ($matrix->updated_at != $matrix->created_at)
                                         {{ $matrix->updated_at->format('d-M-Y') }}

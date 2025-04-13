@@ -56,7 +56,8 @@
             <h3 class="card-title">Edit Approval Matrix</h3>
             <hr>
 
-            <form action="{{ route('admin.approval-matrix.update', $approvalMatrix->id) }}" method="post" id="approvalMatrixForm">
+            <form action="{{ route('admin.approval-matrix.update', $approvalMatrix->id) }}" method="post"
+                id="approvalMatrixForm">
                 @csrf
                 @method('PUT')
 
@@ -64,8 +65,8 @@
                     <div class="col-md-12 col-12">
                         <div class="form-group">
                             <label>Matrix Name</label>
-                            <input type="text" class="form-control @error('name') is-invalid @enderror"
-                                   name="name" value="{{ old('name', $approvalMatrix->name) }}" placeholder="Enter matrix name">
+                            <input type="text" class="form-control @error('name') is-invalid @enderror" name="name"
+                                value="{{ old('name', $approvalMatrix->name) }}" placeholder="Enter matrix name">
                             @error('name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -75,29 +76,46 @@
                             <label>Budget Range (IDR)</label>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <label for="min_budget">Minimum Budget</label>
-                                    <input type="number" class="form-control @error('min_budget') is-invalid @enderror"
-                                           id="min_budget" name="min_budget" value="{{ old('min_budget', $approvalMatrix->min_budget) }}" min="0">
+                                    <label for="min_budget_display">Minimum Budget</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Rp</span>
+                                        </div>
+                                        <input type="text" class="form-control @error('min_budget') is-invalid @enderror"
+                                            id="min_budget_display" placeholder="0"
+                                            value="{{ old('min_budget', $approvalMatrix->min_budget) }}">
+                                        <input type="hidden" id="min_budget" name="min_budget"
+                                            value="{{ old('min_budget', $approvalMatrix->min_budget) }}">
+                                    </div>
                                     @error('min_budget')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="max_budget">Maximum Budget</label>
-                                    <input type="number" class="form-control @error('max_budget') is-invalid @enderror"
-                                           id="max_budget" name="max_budget" value="{{ old('max_budget', $approvalMatrix->max_budget) }}" min="0"
-                                           placeholder="Leave empty for unlimited">
+                                    <label for="max_budget_display">Maximum Budget</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Rp</span>
+                                        </div>
+                                        <input type="text" class="form-control @error('max_budget') is-invalid @enderror"
+                                            id="max_budget_display"
+                                            value="{{ old('max_budget', $approvalMatrix->max_budget) }}"
+                                            placeholder="Leave empty for unlimited">
+                                        <input type="hidden" id="max_budget" name="max_budget"
+                                            value="{{ old('max_budget', $approvalMatrix->max_budget) }}">
+                                    </div>
                                     @error('max_budget')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
+                            <small class="form-text text-muted">Values will be automatically formatted with thousand
+                                separators as you type</small>
                         </div>
 
                         <div class="form-group">
                             <label>Description</label>
-                            <textarea class="form-control @error('description') is-invalid @enderror"
-                                      name="description" rows="3">{{ old('description', $approvalMatrix->description) }}</textarea>
+                            <textarea class="form-control @error('description') is-invalid @enderror" name="description" rows="3">{{ old('description', $approvalMatrix->description) }}</textarea>
                             @error('description')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -105,12 +123,14 @@
 
                         <div class="form-group">
                             <label>Created Date</label>
-                            <input type="text" class="form-control" value="{{ $approvalMatrix->created_at->format('d-M-Y') }}" readonly>
+                            <input type="text" class="form-control"
+                                value="{{ $approvalMatrix->created_at->format('d-M-Y') }}" readonly>
                         </div>
 
                         <div class="form-group">
                             <label>Created By</label>
-                            <input type="text" class="form-control" value="{{ $approvalMatrix->creator_name }}" readonly>
+                            <input type="text" class="form-control" value="{{ $approvalMatrix->creator_name }}"
+                                readonly>
                         </div>
 
                         <div class="form-group">
@@ -133,7 +153,8 @@
                                 </div>
                                 <div class="form-check">
                                     <input type="radio" class="form-check-input" name="status" value="Not Active"
-                                        id="statusNotActive" {{ $approvalMatrix->status == 'Not Active' ? 'checked' : '' }}>
+                                        id="statusNotActive"
+                                        {{ $approvalMatrix->status == 'Not Active' ? 'checked' : '' }}>
                                     <label class="form-check-label" for="statusNotActive">Not Active</label>
                                 </div>
                             </div>
@@ -154,7 +175,8 @@
                                     <!-- Selected approvers will appear here -->
                                 </div>
 
-                                <button type="button" class="btn btn-secondary" id="addApproverBtn">Add Approver</button>
+                                <button type="button" class="btn btn-secondary" id="addApproverBtn">Add
+                                    Approver</button>
 
                                 <!-- Approver Selection Modal -->
                                 <div id="approverModal" class="modal fade" tabindex="-1" role="dialog">
@@ -162,7 +184,8 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Select Approvers</h5>
-                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
@@ -172,33 +195,44 @@
                                                         <h6>Management Roles</h6>
                                                         <div id="approverOptions" class="management-roles">
                                                             <div class="mb-2" data-approver="VP/OVP Pemilik Program">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>VP/OVP Pemilik Program</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Direktur Pemilik Program">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Direktur Pemilik Program</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
-                                                            <div class="mb-2" data-approver="VP Finance Plan & Reporting">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                            <div class="mb-2"
+                                                                data-approver="VP Finance Plan & Reporting">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>VP Finance Plan & Reporting</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="VP Corp. Strategy">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>VP Corp. Strategy</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="VP Risk Management">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>VP Risk Management</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -207,21 +241,27 @@
                                                         <h6>Director Level</h6>
                                                         <div id="approverOptions" class="director-roles">
                                                             <div class="mb-2" data-approver="Direktur Finance">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Direktur Finance</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Direktur Utama">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Direktur Utama</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Unit Head - Approver">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Unit Head - Approver</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -232,27 +272,37 @@
                                                         <h6>Manager Roles</h6>
                                                         <div id="approverOptions" class="manager-roles">
                                                             <div class="mb-2" data-approver="Mgr. Pemilik Program">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Mgr. Pemilik Program</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Mgr. Business Feasibility">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Mgr. Business Feasibility</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
-                                                            <div class="mb-2" data-approver="Mgr. Management Accounting">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                            <div class="mb-2"
+                                                                data-approver="Mgr. Management Accounting">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Mgr. Management Accounting</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
-                                                            <div class="mb-2" data-approver="Mgr. Governance & Process Evaluation">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                            <div class="mb-2"
+                                                                data-approver="Mgr. Governance & Process Evaluation">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Mgr. Governance & Process Evaluation</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -261,27 +311,35 @@
                                                         <h6>Other Roles</h6>
                                                         <div id="approverOptions" class="other-roles">
                                                             <div class="mb-2" data-approver="Unit Pemilik Program">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Unit Pemilik Program</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Reviewer-Maker">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Reviewer-Maker</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Reviewer-Approver">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Reviewer-Approver</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                             <div class="mb-2" data-approver="Acknowledger">
-                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                <div
+                                                                    class="d-flex justify-content-between align-items-center">
                                                                     <span>Acknowledger</span>
-                                                                    <button type="button" class="btn btn-sm btn-primary select-approver">Select</button>
+                                                                    <button type="button"
+                                                                        class="btn btn-sm btn-primary select-approver">Select</button>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -289,7 +347,8 @@
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-dismiss="modal">Close</button>
                                             </div>
                                         </div>
                                     </div>
@@ -333,9 +392,72 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
+            // ===== BUDGET FORMATTING FUNCTIONALITY =====
+            // Function to format number with thousand separators
+            function formatNumber(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+
+            // Function to remove all non-numeric characters
+            function unformatNumber(str) {
+                return str.replace(/[^\d]/g, '');
+            }
+
+            // Format display fields on input
+            $('#min_budget_display').on('input', function() {
+                // Store cursor position
+                const cursorPos = this.selectionStart;
+                const oldLength = this.value.length;
+
+                // Get raw value and update hidden field
+                const rawValue = unformatNumber($(this).val());
+                $('#min_budget').val(rawValue);
+
+                // Format the display value
+                if (rawValue) {
+                    const formattedValue = formatNumber(rawValue);
+                    $(this).val(formattedValue);
+
+                    // Adjust cursor position after formatting
+                    const newLength = formattedValue.length;
+                    const newCursorPos = cursorPos + (newLength - oldLength);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+
+            // Same logic for max budget
+            $('#max_budget_display').on('input', function() {
+                const cursorPos = this.selectionStart;
+                const oldLength = this.value.length;
+
+                const rawValue = unformatNumber($(this).val());
+                $('#max_budget').val(rawValue);
+
+                if (rawValue) {
+                    const formattedValue = formatNumber(rawValue);
+                    $(this).val(formattedValue);
+
+                    const newLength = formattedValue.length;
+                    const newCursorPos = cursorPos + (newLength - oldLength);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+
+            // Set initial formatted values
+            const minBudgetValue = $('#min_budget').val();
+            if (minBudgetValue) {
+                $('#min_budget_display').val(formatNumber(minBudgetValue));
+            }
+
+            const maxBudgetValue = $('#max_budget').val();
+            if (maxBudgetValue) {
+                $('#max_budget_display').val(formatNumber(maxBudgetValue));
+            }
+
+            // ===== APPROVER MANAGEMENT FUNCTIONALITY =====
             // Approver management
             const selectedApprovers = new Set([
-                @foreach($approvalMatrix->approvers as $approver)
+                @foreach ($approvalMatrix->approvers as $approver)
                     "{{ $approver }}",
                 @endforeach
             ]);
@@ -404,6 +526,7 @@
                 }
             });
 
+            // ===== FORM SUBMISSION VALIDATION =====
             // Form submission validation
             $('#approvalMatrixForm').submit(function(e) {
                 // Check if minimum budget is provided
@@ -415,14 +538,14 @@
 
                 // Check if at least one approver is selected
                 if (selectedApprovers.size === 0) {
-                    e.preventDefault();
-                    alert('Please select at least one approver');
+                    // e.preventDefault();
+                    // alert('Please select at least one approver');
                     return;
                 }
 
                 // Validate budget values
-                const minBudget = parseFloat($('#min_budget').val());
-                const maxBudget = $('#max_budget').val() ? parseFloat($('#max_budget').val()) : null;
+                const minBudget = parseInt($('#min_budget').val(), 10);
+                const maxBudget = $('#max_budget').val() ? parseInt($('#max_budget').val(), 10) : null;
 
                 if (minBudget < 0) {
                     e.preventDefault();

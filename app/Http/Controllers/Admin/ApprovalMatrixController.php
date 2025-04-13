@@ -35,7 +35,7 @@ class ApprovalMatrixController extends Controller
             'name' => 'required|string|max:255',
             'min_budget' => 'required|numeric|min:0',
             'max_budget' => 'nullable|numeric|gt:min_budget',
-            'approvers' => 'required|array',
+            // 'approvers' => 'required|array',
             'status' => 'required|in:Active,Not Active',
         ]);
 
@@ -46,7 +46,7 @@ class ApprovalMatrixController extends Controller
             'name' => $request->name,
             'min_budget' => $request->min_budget,
             'max_budget' => $maxBudget,
-            'approvers' => $request->approvers,
+            // 'approvers' => $request->approvers,
             'description' => $request->description,
             'status' => $request->status,
             'created_by' => Auth::id(), // Using ID instead of name
@@ -74,7 +74,7 @@ class ApprovalMatrixController extends Controller
             'name' => 'required|string|max:255',
             'min_budget' => 'required|numeric|min:0',
             'max_budget' => 'nullable|numeric|gt:min_budget',
-            'approvers' => 'required|array',
+            // 'approvers' => 'required|array',
             'status' => 'required|in:Active,Not Active',
         ]);
 
@@ -85,7 +85,7 @@ class ApprovalMatrixController extends Controller
             'name' => $request->name,
             'min_budget' => $request->min_budget,
             'max_budget' => $maxBudget,
-            'approvers' => $request->approvers,
+            // 'approvers' => $request->approvers,
             'description' => $request->description,
             'status' => $request->status,
             'edited_by' => Auth::id(), // Using ID instead of name

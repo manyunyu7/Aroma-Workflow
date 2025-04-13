@@ -83,23 +83,36 @@
                             <label>Budget Range (IDR)</label>
                             <div class="row">
                                 <div class="col-md-6">
-                                    <label for="min_budget">Minimum Budget</label>
-                                    <input type="number" class="form-control @error('min_budget') is-invalid @enderror"
-                                           id="min_budget" name="min_budget" value="{{ old('min_budget', 0) }}" min="0">
+                                    <label for="min_budget_display">Minimum Budget</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Rp</span>
+                                        </div>
+                                        <input type="text" class="form-control @error('min_budget') is-invalid @enderror"
+                                               id="min_budget_display" placeholder="0" value="{{ old('min_budget', 0) }}">
+                                        <input type="hidden" id="min_budget" name="min_budget" value="{{ old('min_budget', 0) }}">
+                                    </div>
                                     @error('min_budget')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="max_budget">Maximum Budget</label>
-                                    <input type="number" class="form-control @error('max_budget') is-invalid @enderror"
-                                           id="max_budget" name="max_budget" value="{{ old('max_budget') }}" min="0"
-                                           placeholder="Leave empty for unlimited">
+                                    <label for="max_budget_display">Maximum Budget</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">Rp</span>
+                                        </div>
+                                        <input type="text" class="form-control @error('max_budget') is-invalid @enderror"
+                                               id="max_budget_display" value="{{ old('max_budget') }}"
+                                               placeholder="Leave empty for unlimited">
+                                        <input type="hidden" id="max_budget" name="max_budget" value="{{ old('max_budget') }}">
+                                    </div>
                                     @error('max_budget')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
+                            <small class="form-text text-muted">Values will be automatically formatted with thousand separators as you type</small>
                         </div>
 
                         <div class="form-group">
@@ -331,6 +344,69 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
+            // ===== BUDGET FORMATTING FUNCTIONALITY =====
+            // Function to format number with thousand separators
+            function formatNumber(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+
+            // Function to remove all non-numeric characters
+            function unformatNumber(str) {
+                return str.replace(/[^\d]/g, '');
+            }
+
+            // Format display fields on input
+            $('#min_budget_display').on('input', function() {
+                // Store cursor position
+                const cursorPos = this.selectionStart;
+                const oldLength = this.value.length;
+
+                // Get raw value and update hidden field
+                const rawValue = unformatNumber($(this).val());
+                $('#min_budget').val(rawValue);
+
+                // Format the display value
+                if (rawValue) {
+                    const formattedValue = formatNumber(rawValue);
+                    $(this).val(formattedValue);
+
+                    // Adjust cursor position after formatting
+                    const newLength = formattedValue.length;
+                    const newCursorPos = cursorPos + (newLength - oldLength);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+
+            // Same logic for max budget
+            $('#max_budget_display').on('input', function() {
+                const cursorPos = this.selectionStart;
+                const oldLength = this.value.length;
+
+                const rawValue = unformatNumber($(this).val());
+                $('#max_budget').val(rawValue);
+
+                if (rawValue) {
+                    const formattedValue = formatNumber(rawValue);
+                    $(this).val(formattedValue);
+
+                    const newLength = formattedValue.length;
+                    const newCursorPos = cursorPos + (newLength - oldLength);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+
+            // Set initial formatted values
+            const minBudgetValue = $('#min_budget').val();
+            if (minBudgetValue) {
+                $('#min_budget_display').val(formatNumber(minBudgetValue));
+            }
+
+            const maxBudgetValue = $('#max_budget').val();
+            if (maxBudgetValue) {
+                $('#max_budget_display').val(formatNumber(maxBudgetValue));
+            }
+
+            // ===== APPROVER MANAGEMENT FUNCTIONALITY =====
             // Approver management
             const selectedApprovers = new Set();
 
@@ -398,6 +474,7 @@
                 }
             });
 
+            // ===== FORM SUBMISSION VALIDATION =====
             // Form submission validation
             $('#approvalMatrixForm').submit(function(e) {
                 // Check if minimum budget is provided
@@ -407,16 +484,9 @@
                     return;
                 }
 
-                // Check if at least one approver is selected
-                if (selectedApprovers.size === 0) {
-                    e.preventDefault();
-                    alert('Please select at least one approver');
-                    return;
-                }
-
                 // Validate budget values
-                const minBudget = parseFloat($('#min_budget').val());
-                const maxBudget = $('#max_budget').val() ? parseFloat($('#max_budget').val()) : null;
+                const minBudget = parseInt($('#min_budget').val(), 10);
+                const maxBudget = $('#max_budget').val() ? parseInt($('#max_budget').val(), 10) : null;
 
                 if (minBudget < 0) {
                     e.preventDefault();

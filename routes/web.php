@@ -13,7 +13,8 @@ use App\Http\Controllers\{
     JenisAnggaranController,
     MasterKaryawanController,
     MasterUserController,
-    WorkflowController
+    WorkflowController,
+    Admin\ApprovalMatrixController
 };
 use App\Http\Controllers\User\TicketController;
 use App\Http\Middleware\SsoGate;
@@ -90,6 +91,9 @@ Route::get('meta/fetch-jabatan', [WorkflowController::class, 'fetchJabatan']);
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('master-user', MasterUserController::class);
     Route::post('get-user-details', [MasterUserController::class, 'getUserDetailsByNik'])->name('get-user-details');
+
+    // Add the new resource route for approval matrix
+    Route::resource('approval-matrix', ApprovalMatrixController::class)->except(['show']);
 
     Route::resource('jenis-anggaran', JenisAnggaranController::class);
     Route::get('home', [HomeController::class, 'index']);

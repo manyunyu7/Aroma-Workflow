@@ -62,6 +62,23 @@
                             <span class="hide-menu">Add Master User</span>
                         </a>
                     </li>
+
+                    <li class="nav-small-cap"><span class="hide-menu">Approval Matrix</span></li>
+
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="{{ route('admin.approval-matrix.index') }}" aria-expanded="false">
+                            <i data-feather="layers" class="feather-icon"></i>
+                            <span class="hide-menu">Manage Approval Matrix</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-item active d-none">
+                        <a class="sidebar-link" href="{{ route('admin.approval-matrix.create') }}"
+                            aria-expanded="false">
+                            <i data-feather="plus-square" class="feather-icon"></i>
+                            <span class="hide-menu">Add Approval Matrix</span>
+                        </a>
+                    </li>
                 @endif
             </ul>
         </nav>

@@ -142,63 +142,50 @@
 
                                 <button type="button" class="btn btn-secondary" id="addRoleBtn">Add Role</button>
 
-                                <div id="roleModal" class="modal fade" tabindex="-1" role="dialog">
+                                <!-- Add a modal for entering budget limits -->
+                                <div id="budgetModal" class="modal fade" tabindex="-1" role="dialog">
                                     <div class="modal-dialog" role="document">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Select Role</h5>
+                                                <h5 class="modal-title">Set Budget Limits for <span id="roleName"></span>
+                                                </h5>
                                                 <button type="button" class="close" data-dismiss="modal"
                                                     aria-label="Close">
                                                     <span aria-hidden="true">&times;</span>
                                                 </button>
                                             </div>
                                             <div class="modal-body">
-                                                <!-- Replace the roleOptions div in the edit form with this -->
-                                                <div id="roleOptions">
-                                                    <div class="mb-3" data-role="Admin">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span>Admin</span>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-primary select-role">Select</button>
+                                                <div class="form-group">
+                                                    <label for="minBudget_display">Minimum Budget (IDR)</label>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text">Rp</span>
                                                         </div>
-                                                    </div>
-                                                    <div class="mb-3" data-role="Creator">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span>Creator</span>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-primary select-role">Select</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-3" data-role="Acknowledger">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span>Acknowledger</span>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-primary select-role">Select</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-3" data-role="Unit Head - Approver">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span>Unit Head - Approver</span>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-primary select-role">Select</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-3" data-role="Reviewer-Maker">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span>Reviewer-Maker</span>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-primary select-role">Select</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="mb-3" data-role="Reviewer-Approver">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <span>Reviewer-Approver</span>
-                                                            <button type="button"
-                                                                class="btn btn-sm btn-primary select-role">Select</button>
-                                                        </div>
+                                                        <input type="text" class="form-control" id="minBudget_display"
+                                                            placeholder="0">
+                                                        <input type="hidden" id="minBudget" value="0">
                                                     </div>
                                                 </div>
-
+                                                <div class="form-group">
+                                                    <label for="maxBudget_display">Maximum Budget (IDR)</label>
+                                                    <div class="input-group">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text">Rp</span>
+                                                        </div>
+                                                        <input type="text" class="form-control" id="maxBudget_display"
+                                                            placeholder="Leave empty for unlimited">
+                                                        <input type="hidden" id="maxBudget" value="">
+                                                    </div>
+                                                    <small class="form-text text-muted">Values will be automatically
+                                                        formatted with thousand separators as you type. Leave empty for
+                                                        unlimited budget.</small>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-dismiss="modal">Cancel</button>
+                                                <button type="button" class="btn btn-primary"
+                                                    id="saveBudgetBtn">Save</button>
                                             </div>
                                         </div>
                                     </div>
@@ -281,6 +268,58 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
+            // ===== BUDGET FORMATTING FUNCTIONALITY =====
+            // Function to format number with thousand separators
+            function formatNumber(num) {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+
+            // Function to remove all non-numeric characters
+            function unformatNumber(str) {
+                return str.replace(/[^\d]/g, '');
+            }
+
+            // Format display fields on input for minBudget
+            $('#minBudget_display').on('input', function() {
+                // Store cursor position
+                const cursorPos = this.selectionStart;
+                const oldLength = this.value.length;
+
+                // Get raw value and update hidden field
+                const rawValue = unformatNumber($(this).val());
+                $('#minBudget').val(rawValue);
+
+                // Format the display value
+                if (rawValue) {
+                    const formattedValue = formatNumber(rawValue);
+                    $(this).val(formattedValue);
+
+                    // Adjust cursor position after formatting
+                    const newLength = formattedValue.length;
+                    const newCursorPos = cursorPos + (newLength - oldLength);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+
+            // Same logic for maxBudget
+            $('#maxBudget_display').on('input', function() {
+                const cursorPos = this.selectionStart;
+                const oldLength = this.value.length;
+
+                const rawValue = unformatNumber($(this).val());
+                $('#maxBudget').val(rawValue);
+
+                if (rawValue) {
+                    const formattedValue = formatNumber(rawValue);
+                    $(this).val(formattedValue);
+
+                    const newLength = formattedValue.length;
+                    const newCursorPos = cursorPos + (newLength - oldLength);
+                    this.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+
+            // ===== ROLE MANAGEMENT =====
             // Role management
             let roleCount = 0;
             const selectedRoles = new Map(); // Changed from Set to Map to store additional data
@@ -324,7 +363,9 @@
                 });
             }
 
+            // Function to format currency in table display
             function formatCurrency(amount) {
+                if (amount === null || amount === '') return 'Unlimited';
                 return new Intl.NumberFormat('id-ID').format(amount);
             }
 
@@ -344,8 +385,13 @@
                 if (!selectedRoles.has(role)) {
                     // Show budget modal
                     $('#roleName').text(role);
+
+                    // Reset budget fields
                     $('#minBudget').val('0');
+                    $('#minBudget_display').val('0');
                     $('#maxBudget').val('');
+                    $('#maxBudget_display').val('');
+
                     $('#roleModal').modal('hide');
                     $('#budgetModal').modal('show');
 
@@ -363,13 +409,12 @@
                 const minBudget = $('#minBudget').val() || 0;
                 const maxBudget = $('#maxBudget').val() || null;
 
-                if (minBudget < 0) {
+                if (parseInt(minBudget, 10) < 0) {
                     alert('Minimum budget cannot be negative.');
                     return;
                 }
 
-                if (maxBudget !== null && maxBudget !== '' && parseFloat(maxBudget) < parseFloat(
-                    minBudget)) {
+                if (maxBudget !== null && maxBudget !== '' && parseInt(maxBudget, 10) < parseInt(minBudget, 10)) {
                     alert('Maximum budget must be greater than or equal to minimum budget.');
                     return;
                 }
@@ -390,8 +435,18 @@
                 const budgetInfo = selectedRoles.get(role);
 
                 $('#roleName').text(role);
+
+                // Set both hidden and display fields
                 $('#minBudget').val(budgetInfo.minBudget || 0);
+                $('#minBudget_display').val(formatNumber(budgetInfo.minBudget || 0));
+
                 $('#maxBudget').val(budgetInfo.maxBudget || '');
+                if (budgetInfo.maxBudget) {
+                    $('#maxBudget_display').val(formatNumber(budgetInfo.maxBudget));
+                } else {
+                    $('#maxBudget_display').val('');
+                }
+
                 $('#saveBudgetBtn').data('role', role);
                 $('#budgetModal').modal('show');
             });

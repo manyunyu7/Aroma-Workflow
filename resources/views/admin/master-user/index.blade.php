@@ -38,6 +38,13 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label for="filter-unit">Unit Kerja:</label>
+                    <select id="filter-unit" class="form-control form-control-sm">
+                        <option value="">All</option>
+                        <!-- Units will be populated dynamically via JavaScript -->
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label for="filter-nama">Nama:</label>
                     <input type="text" id="filter-nama" class="form-control form-control-sm">
                 </div>
@@ -45,7 +52,7 @@
                     <label for="filter-nik">NIK:</label>
                     <input type="text" id="filter-nik" class="form-control form-control-sm">
                 </div>
-                <div class="col-md-4 align-self-end text-right">
+                <div class="col-md-2 align-self-end text-right">
                     <a href="{{ route('admin.master-user.create') }}" class="btn btn-primary btn-sm">Add User</a>
                 </div>
             </div>
@@ -80,10 +87,10 @@
                                             @if($role->min_budget !== null || $role->max_budget !== null)
                                                 <div class="budget-range small text-muted mt-1">
                                                     <i class="fas fa-money-bill-wave"></i>
-                                                    IDR {{ number_format($role->min_budget ?? 0, 0, ',', '.') }}
+                                                     {{ number_format($role->min_budget ?? 0, 0, ',', '.') }}
                                                     <i class="fas fa-arrow-right mx-1"></i>
                                                     @if($role->max_budget !== null)
-                                                        IDR {{ number_format($role->max_budget, 0, ',', '.') }}
+                                                         {{ number_format($role->max_budget, 0, ',', '.') }}
                                                     @else
                                                         <span class="text-success">Unlimited</span>
                                                     @endif
@@ -187,9 +194,36 @@
                 }));
             });
 
+            // Collect available unit_kerja from the table
+            var availableUnits = [];
+            $('#table_data tbody tr td:nth-child(5)').each(function() {
+                var unit = $(this).text().trim();
+                if (unit && $.inArray(unit, availableUnits) === -1) {
+                    availableUnits.push(unit);
+                }
+            });
+
+            // Sort units alphabetically
+            availableUnits.sort();
+
+            // Populate the unit_kerja dropdown
+            var unitSelect = $('#filter-unit');
+            $.each(availableUnits, function(i, unit) {
+                unitSelect.append($('<option>', {
+                    value: unit,
+                    text: unit
+                }));
+            });
+
             // Initialize Select2 for multiple role selection
             roleSelect.select2({
                 placeholder: "Select roles",
+                allowClear: true
+            });
+
+            // Initialize Select2 for unit_kerja
+            unitSelect.select2({
+                placeholder: "Select unit",
                 allowClear: true
             });
 
@@ -201,6 +235,7 @@
                     var status = $('#filter-status').val();
                     var nama = $('#filter-nama').val().toLowerCase();
                     var nik = $('#filter-nik').val().toLowerCase();
+                    var unit = $('#filter-unit').val();
 
                     // Check roles
                     var roleMatch = roles.length === 0;
@@ -218,8 +253,11 @@
                     // Check NIK
                     var nikMatch = nik === '' || data[2].toLowerCase().includes(nik);
 
+                    // Check unit_kerja
+                    var unitMatch = unit === '' || data[4].trim() === unit;
+
                     // Return true only if all filters pass
-                    return roleMatch && statusMatch && nameMatch && nikMatch;
+                    return roleMatch && statusMatch && nameMatch && nikMatch && unitMatch;
                 }
             );
 
@@ -249,7 +287,7 @@
             });
 
             // Apply filters on change
-            $('#filter-status, #filter-nama, #filter-nik, #filter-role').on('change keyup', function() {
+            $('#filter-status, #filter-nama, #filter-nik, #filter-role, #filter-unit').on('change keyup', function() {
                 table.draw();
             });
         });

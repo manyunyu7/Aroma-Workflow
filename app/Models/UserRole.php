@@ -14,6 +14,8 @@ class UserRole extends Model
         'role',
         'min_budget',
         'max_budget',
+        'created_at',
+        'updated_at'
     ];
 
     /**
@@ -22,5 +24,40 @@ class UserRole extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get all roles that can handle the specified budget
+     */
+    public static function getRolesForBudget($budget)
+    {
+        return static::where('max_budget', '>=', $budget)
+                     ->distinct()
+                     ->pluck('role');
+    }
+
+    /**
+     * Get all users with a specific role that can handle the budget
+     */
+    public static function getUsersWithRoleForBudget($role, $budget)
+    {
+        return static::where('role', $role)
+                     ->where('max_budget', '>=', $budget)
+                     ->with('user')
+                     ->get();
+    }
+
+    /**
+     * Get predefined workflow roles
+     */
+    public static function getWorkflowRoles()
+    {
+        return [
+            'Creator' => 'Creator',
+            'Acknowledger' => 'Acknowledger',
+            'Unit Head - Approver' => 'Unit Head - Approver',
+            'Reviewer-Maker' => 'Reviewer-Maker',
+            'Reviewer-Approver' => 'Reviewer-Approver'
+        ];
     }
 }

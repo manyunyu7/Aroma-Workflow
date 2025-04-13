@@ -66,6 +66,79 @@
         .document-item:hover {
             background-color: #f8f9fa;
         }
+
+        /* PIC row styling */
+        .pic-entry {
+            position: relative;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .pic-entry:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Reviewer group styling */
+        .reviewer-group {
+            background-color: #f0f7ff;
+            border-left: 3px solid #0d6efd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .reviewer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .reviewer-badge {
+            background-color: #0d6efd;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Role pill badges */
+        .role-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 5px;
+        }
+
+        .role-creator {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+        }
+
+        .role-acknowledger {
+            background-color: #e8f5e9;
+            color: #1b5e20;
+        }
+
+        .role-head {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .role-reviewer-maker {
+            background-color: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        .role-reviewer-approver {
+            background-color: #ffebee;
+            color: #b71c1c;
+        }
     </style>
 @endpush
 
@@ -77,7 +150,7 @@
             <h3 class="card-title">Justification Form</h3>
             <hr>
 
-            <form action="{{ route('workflows.store') }}" method="post" enctype="multipart/form-data">
+            <form action="{{ route('workflows.store') }}" method="post" enctype="multipart/form-data" id="workflow-form">
                 @csrf
 
                 <div class="row">
@@ -176,6 +249,9 @@
 
                                         this.value = formattedValue; // Display the formatted value with "Rp"
                                         valueField.value = numberValue; // Store the raw number for submission
+
+                                        // When budget changes, check if we need to reset the approval workflow
+                                        checkBudgetChanges(numberValue);
                                     });
                                 });
                             </script>
@@ -532,87 +608,53 @@
                 <hr>
 
                 <h5>Approval PICs</h5>
-                <button type="button" class="btn btn-success btn-sm" id="add-pic-btn">+ Add PIC</button>
+                <p class="text-muted mb-3">Set up the approval workflow for this justification form</p>
 
-                <table class="table table-bordered mt-3">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Role</th>
-                            <th>Jabatan</th>
-                            <th>Digital Signature</th>
-                            <th>Notes</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pic-table">
-                        <!-- Pre-filled row for the logged-in user -->
-                        <tr>
-                            <td>
-                                {{ $user->name }} <!-- Display the logged-in user's name -->
-                                <input type="hidden" name="pics[0][user_id]" value="{{ $user->id }}">
-                            </td>
-                            <td>Created By <input type="hidden" name="pics[0][role]" value="CREATOR"></td>
-                            <td>
-                                {{ $user->jabatan ?? 'N/A' }} <!-- Display the logged-in user's jabatan -->
-                                <input type="hidden" name="pics[0][jabatan]" value="{{ $user->jabatan ?? '' }}">
-                            </td>
-                            <td>
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="pics[0][digital_signature]"
-                                        value="1" {{ old('pics.0.digital_signature') ? 'checked' : '' }}>
-                                    <label class="form-check-label">Use Digital Signature</label>
-                                </div>
-                            </td>
-                            <td>
-                                <textarea name="pics[0][notes]" placeholder="Enter notes (optional)">{{ old('pics.0.notes') }}</textarea>
-                            </td>
-                            <td></td> <!-- No remove button for the first PIC -->
-                        </tr>
-                        <!-- Dynamically Added PIC Rows -->
-                        @foreach (old('pics', []) as $index => $pic)
-                            @if ($index > 0)
-                                <tr class="pic-entry">
-                                    <td>
-                                        <input type="text" class="form-control"
-                                            name="pics[{{ $index }}][user_id]"
-                                            value="{{ $pic['user_id'] ?? '' }}" placeholder="User ID">
-                                    </td>
-                                    <td>
-                                        <select name="pics[{{ $index }}][role]" class="form-control">
-                                            <option value="">-- Select Role --</option>
-                                            @foreach (\App\Models\Workflow::getStatuses() as $status)
-                                                <option value="{{ $status['code'] }}"
-                                                    {{ isset($pic['role']) && $pic['role'] == $status['code'] ? 'selected' : '' }}>
-                                                    {{ $status['name'] }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <span class="jabatan-display">{{ $pic['jabatan'] ?? 'N/A' }}</span>
-                                        <input type="hidden" name="pics[{{ $index }}][jabatan]"
-                                            value="{{ $pic['jabatan'] ?? '' }}">
-                                    </td>
-                                    <td>
+                <div class="alert alert-info" id="budget-info-alert">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Based on the budget amount, specific approval flow rules will apply.
+                </div>
+
+                <div class="workflow-container mb-4">
+                    <div class="current-workflow">
+                        <button type="button" class="btn btn-success btn-sm mb-3" id="add-pic-btn">
+                            <i class="fas fa-plus"></i> Add Approver
+                        </button>
+
+                        <div id="pic-container" class="mb-3">
+                            <!-- The first row always has the creator (current user) -->
+                            <div class="pic-entry" data-role="Creator" data-user-id="{{ $user->id }}">
+                                <span class="role-badge role-creator">Creator</span>
+                                <div class="row mt-2">
+                                    <div class="col-md-4">
+                                        <strong>{{ $user->name }}</strong>
+                                        <input type="hidden" name="pics[0][user_id]" value="{{ $user->id }}">
+                                        <input type="hidden" name="pics[0][role]" value="Creator">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">{{ $user->unit_kerja }}</small>
+                                        <input type="hidden" name="pics[0][jabatan]" value="{{ $user->jabatan ?? '' }}">
+                                    </div>
+                                    <div class="col-md-3">
                                         <div class="form-check">
-                                            <input type="checkbox" class="form-check-input"
-                                                name="pics[{{ $index }}][digital_signature]" value="1"
-                                                {{ isset($pic['digital_signature']) && $pic['digital_signature'] ? 'checked' : '' }}>
+                                            <input type="checkbox" class="form-check-input" name="pics[0][digital_signature]"
+                                                value="1" {{ old('pics.0.digital_signature') ? 'checked' : '' }}>
                                             <label class="form-check-label">Use Digital Signature</label>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <textarea name="pics[{{ $index }}][notes]" placeholder="Enter notes (optional)">{{ $pic['notes'] ?? '' }}</textarea>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-danger btn-sm remove-pic">Remove</button>
-                                    </td>
-                                </tr>
-                            @endif
-                        @endforeach
-                    </tbody>
-                </table>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <!-- No remove button for creator -->
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <textarea name="pics[0][notes]" class="form-control" placeholder="Notes (optional)">{{ old('pics.0.notes') }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="mt-4">
                     <button type="submit" class="btn btn-primary">Submit Workflow</button>
@@ -624,39 +666,91 @@
 
     <!-- PIC Modal -->
     <div class="modal fade" id="pic-modal" tabindex="-1" aria-labelledby="picModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="picModalLabel">Add PIC</h5>
+                    <h5 class="modal-title" id="picModalLabel">Add Approver</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Select Unit Kerja</label>
-                        <select id="unit-kerja-select" class="form-control" style="width: 100%;"></select>
+                    <!-- Step 1: Select Role -->
+                    <div id="step-1" class="step-container">
+                        <div class="form-group">
+                            <label>Select Role</label>
+                            <select id="role-select" class="form-control">
+                                <option value="">-- Select Role --</option>
+                                <!-- Options will be populated via JavaScript -->
+                            </select>
+                            <small class="form-text text-muted">The role determines the approval level in the workflow</small>
+                        </div>
+
+                        <div id="reviewer-approver-section" class="mt-3 d-none">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                When selecting a Reviewer-Maker, you'll also need to select a corresponding Reviewer-Approver.
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group mt-3">
-                        <label>Select Employee</label>
-                        <select id="employee-select" class="form-control" style="width: 100%;" disabled></select>
+                    <!-- Step 2: Select User -->
+                    <div id="step-2" class="step-container d-none">
+                        <div class="form-group">
+                            <label>Select Unit Kerja</label>
+                            <select id="unit-kerja-select" class="form-control" style="width: 100%;">
+                                <!-- Options will be populated via Select2 -->
+                            </select>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Select Employee</label>
+                            <select id="employee-select" class="form-control" style="width: 100%;" disabled>
+                                <!-- Options will be populated via AJAX -->
+                            </select>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Jabatan</label>
+                            <p id="jabatan-display" class="form-control-static">N/A</p>
+                            <input type="hidden" id="jabatan-input">
+                        </div>
                     </div>
 
-                    <div class="form-group mt-3">
-                        <label>Role</label>
-                        <select id="role-select" class="form-control" disabled></select>
-                    </div>
+                    <!-- Step 3: Reviewer-Approver (conditionally shown) -->
+                    <div id="step-3" class="step-container d-none">
+                        <h5 class="mb-3">Select Reviewer-Approver</h5>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Each Reviewer-Maker must be paired with a Reviewer-Approver.
+                        </div>
 
-                    <div class="form-group mt-3">
-                        <label>Jabatan</label>
-                        <p id="jabatan-display" class="form-control-static">N/A</p>
-                        <input type="hidden" id="jabatan-input">
+                        <div class="form-group">
+                            <label>Select Unit Kerja for Reviewer-Approver</label>
+                            <select id="approver-unit-kerja-select" class="form-control" style="width: 100%;">
+                                <!-- Options will be populated via Select2 -->
+                            </select>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Select Reviewer-Approver</label>
+                            <select id="approver-select" class="form-control" style="width: 100%;" disabled>
+                                <!-- Options will be populated via AJAX -->
+                            </select>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Jabatan</label>
+                            <p id="approver-jabatan-display" class="form-control-static">N/A</p>
+                            <input type="hidden" id="approver-jabatan-input">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="button" id="save-pic" class="btn btn-primary">Save PIC</button>
+                    <button type="button" id="step-back-btn" class="btn btn-outline-primary d-none">Back</button>
+                    <button type="button" id="step-next-btn" class="btn btn-primary">Next</button>
+                    <button type="button" id="save-pic-btn" class="btn btn-success d-none">Add to Workflow</button>
                 </div>
             </div>
         </div>
@@ -667,15 +761,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
+            // Global variables
+            const picContainer = $("#pic-container");
+            const addPicBtn = $("#add-pic-btn");
+            const modal = $("#pic-modal");
+            const roleSelect = $("#role-select");
             const unitKerjaSelect = $("#unit-kerja-select");
             const employeeSelect = $("#employee-select");
-            const roleSelect = $("#role-select");
-            const picTable = $("#pic-table");
-            const modal = new bootstrap.Modal(document.getElementById("pic-modal"));
-            let picIndex = {{ count(old('pics', [1])) }}; // Start with the next index after existing PICs
+            const approverUnitKerjaSelect = $("#approver-unit-kerja-select");
+            const approverSelect = $("#approver-select");
+            const stepNextBtn = $("#step-next-btn");
+            const stepBackBtn = $("#step-back-btn");
+            const savePicBtn = $("#save-pic-btn");
 
-            // Initialize the unit kerja select with Select2
+            let picIndex = {{ count(old('pics', [1])) }}; // Start with the next index after existing PICs
+            let currentStep = 1;
+            let selectedRole = '';
+            let selectedUserId = '';
+            let selectedUserName = '';
+            let selectedUserUnit = '';
+            let selectedJabatan = '';
+            let approverUserId = '';
+            let approverUserName = '';
+            let approverUserUnit = '';
+            let approverJabatan = '';
+            let currentRoles = [];
+            let totalBudget = 0;
+
+            // Initialize Select2 components
             unitKerjaSelect.select2({
+                dropdownParent: $('#pic-modal'),
                 ajax: {
                     url: "/workflow-actions/get-unit-kerja",
                     dataType: "json",
@@ -695,186 +810,579 @@
                     },
                     cache: true
                 },
-                minimumInputLength: 0, // Show all on empty search
-                placeholder: "Select a unit kerja",
-                allowClear: true,
-                dropdownParent: $('#pic-modal')
+                minimumInputLength: 0,
+                placeholder: "Select a unit kerja"
             });
 
-            // Initialize the employee select with Select2
+            approverUnitKerjaSelect.select2({
+                dropdownParent: $('#pic-modal'),
+                ajax: {
+                    url: "/workflow-actions/get-unit-kerja",
+                    dataType: "json",
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term || ""
+                        };
+                    },
+                    processResults: function(data) {
+                        return {
+                            results: data.map(unit => ({
+                                id: unit.unit_kerja,
+                                text: `${unit.unit_kerja} (${unit.employee_count} employees)`
+                            }))
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 0,
+                placeholder: "Select a unit kerja for reviewer-approver"
+            });
+
             employeeSelect.select2({
-                placeholder: "Select an employee",
-                allowClear: true,
-                dropdownParent: $('#pic-modal')
+                dropdownParent: $('#pic-modal'),
+                placeholder: "Select an employee"
             });
 
-            // When unit kerja is selected, load employees
-            unitKerjaSelect.on("select2:select", function(e) {
-                const unitKerja = e.params.data.id;
+            approverSelect.select2({
+                dropdownParent: $('#pic-modal'),
+                placeholder: "Select a reviewer-approver"
+            });
 
-                // Clear and enable employee select
-                employeeSelect.empty().prop("disabled", false);
-
-                // Load employees for this unit
-                $.get("/workflow-actions/get-employees", {
-                    unit_kerja: unitKerja
-                }, function(data) {
-                    if (data.length > 0) {
-                        // Add empty option first
-                        employeeSelect.append(new Option('-- Select Employee --', '', true, true));
-
-                        // Add employees to select
-                        data.forEach(employee => {
-                            employeeSelect.append(new Option(employee.name, employee.id,
-                                false, false));
-                        });
-                    } else {
-                        employeeSelect.append(new Option('No employees found', '', true, true));
-                        employeeSelect.prop("disabled", true);
-                    }
-                }).fail(function(xhr, status, error) {
-                    console.error("Error fetching employees:", error);
-                    employeeSelect.append(new Option('Error loading employees', '', true, true));
+            // Get current roles in the workflow
+            function getCurrentRoles() {
+                let roles = [];
+                $(".pic-entry").each(function() {
+                    roles.push($(this).data('role'));
                 });
-            });
+                currentRoles = roles;
+                return roles;
+            }
 
-            // When employee is selected, load their jabatan and roles
-            employeeSelect.on("select2:select", function(e) {
-                const userId = e.params.data.id;
+            // Check budget changes to update workflow rules
+            window.checkBudgetChanges = function(budget) {
+                totalBudget = budget;
 
-                // Get employee's jabatan
-                $.get("/workflow-actions/fetch-jabatan", {
-                    user_id: userId
-                }, function(response) {
-                    if (response.success) {
-                        $("#jabatan-display").text(response.nama_posisi);
-                        $("#jabatan-input").val(response.nama_posisi);
-                    } else {
-                        $("#jabatan-display").text("Position not found");
-                        $("#jabatan-input").val("");
-                    }
-                }).fail(function(xhr, status, error) {
-                    console.error("Error fetching jabatan:", error);
-                    $("#jabatan-display").text("Error loading position");
-                });
-
-                // Get employee's roles
-                $.get("/workflow-actions/get-user-roles", {
-                    user_id: userId
-                }, function(roles) {
-                    // Clear and enable role select
-                    roleSelect.empty().prop("disabled", false);
-
-                    if (roles && roles.length > 0) {
-                        roles.forEach(function(role) {
-                            const displayName = role.role_name || role.role;
-                            roleSelect.append(new Option(displayName, role.role, false,
-                                false));
-                        });
-                    } else {
-                        // If no roles found, use the default workflow roles
-                        @foreach (\App\Models\Workflow::getStatuses() as $status)
-                            @if ($status['code'] != 'CREATOR')
-                                roleSelect.append(new Option("{{ $status['name'] }}",
-                                    "{{ $status['code'] }}", false, false));
-                            @endif
-                        @endforeach
-                    }
-
-                    // Set first option as selected
-                    if (roleSelect.find("option").length > 0) {
-                        roleSelect.val(roleSelect.find("option:first").val());
-                    }
-                }).fail(function(xhr, status, error) {
-                    console.error("Error fetching roles:", error);
-                    roleSelect.append(new Option('Error loading roles', '', true, true));
-                });
-            });
-
-            $("#add-pic-btn").click(function() {
-                // Reset all form fields
-                unitKerjaSelect.val(null).trigger('change');
-                employeeSelect.empty().prop("disabled", true);
-                roleSelect.empty().prop("disabled", true);
-                $("#jabatan-display").text("N/A");
-                $("#jabatan-input").val("");
-
-                // Remove any editing data
-                $("#save-pic").removeData("editingRow");
-
-                // Show the modal
-                modal.show();
-            });
-
-            $("#save-pic").click(function() {
-                const userId = employeeSelect.val();
-                const userName = employeeSelect.find("option:selected").text();
-                const roleCode = roleSelect.val();
-                const roleName = roleSelect.find("option:selected").text();
-                const jabatan = $("#jabatan-input").val() || 'N/A';
-
-                if (!userId || !roleCode) {
-                    alert("Please select unit kerja, employee, and role");
-                    return;
-                }
-
-                let editingRow = $("#save-pic").data("editingRow");
-
-                if (editingRow) {
-                    // Update existing row
-                    editingRow.find("td:eq(0)").html(
-                        `${userName} <input type="hidden" name="pics[${editingRow.data('index')}][user_id]" value="${userId}">`
-                    );
-                    editingRow.find("td:eq(1)").html(
-                        `${roleName} <input type="hidden" name="pics[${editingRow.data('index')}][role]" value="${roleCode}">`
-                    );
-                    editingRow.find("td:eq(2)").html(
-                        `<span>${jabatan}</span><input type="hidden" name="pics[${editingRow.data('index')}][jabatan]" value="${jabatan}">`
-                    );
-
-                    // Enable/disable Notes field based on whether it's the current user
-                    const notesField = editingRow.find("td:eq(4) textarea");
-                    const isCurrentUser = (userId == "{{ $user->id }}");
-                    notesField.prop("disabled", !isCurrentUser);
+                let budgetInfoHtml = '<i class="fas fa-info-circle mr-2"></i>';
+                if (budget < 500000000) {
+                    budgetInfoHtml += 'Budget under 500,000,000 IDR: Acknowledger and Unit Head must be from the same unit.';
                 } else {
-                    // Determine if this is the current user
-                    const isCurrentUser = (userId == "{{ $user->id }}");
-
-                    // Add new row
-                    const newRow = $(`
-                        <tr data-index="${picIndex}" data-user-id="${userId}" data-role-code="${roleCode}">
-                            <td>${userName} <input type="hidden" name="pics[${picIndex}][user_id]" value="${userId}"></td>
-                            <td>${roleName} <input type="hidden" name="pics[${picIndex}][role]" value="${roleCode}"></td>
-                            <td>
-                                <span>${jabatan}</span>
-                                <input type="hidden" name="pics[${picIndex}][jabatan]" value="${jabatan}">
-                            </td>
-                            <td>
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
-                                    <label class="form-check-label">Use Digital Signature</label>
-                                </div>
-                            </td>
-                            <td>
-                                <textarea name="pics[${picIndex}][notes]" placeholder="Enter notes (optional)"
-                                    ${!isCurrentUser ? 'disabled' : ''}></textarea>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-danger btn-sm remove-pic">Remove</button>
-                            </td>
-                        </tr>
-                    `);
-
-                    picTable.append(newRow);
-                    picIndex++;
+                    budgetInfoHtml += 'Budget is 500,000,000 IDR or higher: Standard approval rules apply.';
                 }
 
-                modal.hide();
+                $("#budget-info-alert").html(budgetInfoHtml);
+
+                // If current workflow violates the new budget rules, show a warning
+                validateWorkflowWithBudget(budget);
+            };
+
+            // Validate workflow based on budget rules
+            function validateWorkflowWithBudget(budget) {
+                if (budget < 500000000) {
+                    // Check if acknowledger and unit head are from the same unit
+                    let acknowledgerEntry = null;
+                    let headEntry = null;
+
+                    $(".pic-entry").each(function() {
+                        const role = $(this).data('role');
+                        if (role === 'Acknowledger') acknowledgerEntry = $(this);
+                        if (role === 'Unit Head - Approver') headEntry = $(this);
+                    });
+
+                    if (acknowledgerEntry && headEntry) {
+                        // Both roles exist, check if they are from the same unit
+                        const acknowledgerUnit = acknowledgerEntry.find('small.text-muted').text();
+                        const headUnit = headEntry.find('small.text-muted').text();
+
+                        if (acknowledgerUnit !== headUnit) {
+                            // Show warning
+                            if (!$('#unit-mismatch-warning').length) {
+                                const warningHtml = `
+                                    <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
+                                        Please update your approvers.
+                                    </div>
+                                `;
+                                $('#pic-container').before(warningHtml);
+                            }
+                        } else {
+                            // Remove warning if exists
+                            $('#unit-mismatch-warning').remove();
+                        }
+                    }
+                } else {
+                    // For higher budgets, remove warning if exists
+                    $('#unit-mismatch-warning').remove();
+                }
+            }
+
+            // Load available roles based on current workflow
+            function loadAvailableRoles() {
+                const roles = getCurrentRoles();
+                const budget = $('#total_nilai').val() || 0;
+
+                // Get available roles from the server
+                $.ajax({
+                    url: '/workflow-actions/getAvailableRoles',
+                    type: 'GET',
+                    data: {
+                        current_roles: roles,
+                        budget: budget
+                    },
+                    success: function(data) {
+                        roleSelect.empty();
+                        roleSelect.append('<option value="">-- Select Role --</option>');
+
+                        data.forEach(function(role) {
+                            roleSelect.append(`<option value="${role}">${role}</option>`);
+                        });
+
+                        // If no roles available, show message
+                        if (data.length === 0) {
+                            roleSelect.append('<option value="" disabled>No roles available for current workflow</option>');
+                            stepNextBtn.prop('disabled', true);
+                        } else {
+                            stepNextBtn.prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading available roles:', xhr.responseText);
+                        roleSelect.empty();
+                        roleSelect.append('<option value="">Error loading roles</option>');
+                        stepNextBtn.prop('disabled', true);
+                    }
+                });
+            }
+
+            // Load employees based on unit kerja and role
+            function loadEmployees(unitKerja, roleValue) {
+                const budget = $('#total_nilai').val() || 0;
+
+                $.ajax({
+                    url: '/workflow-actions/get-employees',
+                    type: 'GET',
+                    data: {
+                        unit_kerja: unitKerja,
+                        role: roleValue,
+                        budget: budget
+                    },
+                    success: function(data) {
+                        employeeSelect.empty();
+                        employeeSelect.append('<option value="">-- Select Employee --</option>');
+
+                        if (data.length > 0) {
+                            data.forEach(function(employee) {
+                                employeeSelect.append(`<option value="${employee.id}" data-unit="${employee.unit_kerja}">${employee.name}</option>`);
+                            });
+                            employeeSelect.prop('disabled', false);
+                        } else {
+                            employeeSelect.append('<option value="" disabled>No employees found with this role</option>');
+                            employeeSelect.prop('disabled', true);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading employees:', xhr.responseText);
+                        employeeSelect.empty();
+                        employeeSelect.append('<option value="">Error loading employees</option>');
+                        employeeSelect.prop('disabled', true);
+                    }
+                });
+            }
+
+            // Load approvers based on unit kerja
+            function loadApprovers(unitKerja) {
+                const budget = $('#total_nilai').val() || 0;
+
+                $.ajax({
+                    url: '/workflow-actions/get-employees',
+                    type: 'GET',
+                    data: {
+                        unit_kerja: unitKerja,
+                        role: 'Reviewer-Approver',
+                        budget: budget
+                    },
+                    success: function(data) {
+                        approverSelect.empty();
+                        approverSelect.append('<option value="">-- Select Reviewer-Approver --</option>');
+
+                        if (data.length > 0) {
+                            data.forEach(function(employee) {
+                                approverSelect.append(`<option value="${employee.id}" data-unit="${employee.unit_kerja}">${employee.name}</option>`);
+                            });
+                            approverSelect.prop('disabled', false);
+                        } else {
+                            approverSelect.append('<option value="" disabled>No reviewer-approvers found</option>');
+                            approverSelect.prop('disabled', true);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('Error loading approvers:', xhr.responseText);
+                        approverSelect.empty();
+                        approverSelect.append('<option value="">Error loading approvers</option>');
+                        approverSelect.prop('disabled', true);
+                    }
+                });
+            }
+
+            // Fetch employee's position/jabatan
+            function fetchJabatan(userId, targetElement, targetInput) {
+                $.ajax({
+                    url: '/workflow-actions/fetch-jabatan',
+                    type: 'GET',
+                    data: { user_id: userId },
+                    success: function(response) {
+                        if (response.success) {
+                            targetElement.text(response.nama_posisi);
+                            targetInput.val(response.nama_posisi);
+                        } else {
+                            targetElement.text('Position not found');
+                            targetInput.val('');
+                        }
+                    },
+                    error: function() {
+                        targetElement.text('Error loading position');
+                        targetInput.val('');
+                    }
+                });
+            }
+
+            // Show step in the modal
+            function showStep(stepNumber) {
+                $('.step-container').addClass('d-none');
+                $(`#step-${stepNumber}`).removeClass('d-none');
+
+                // Update buttons based on step
+                if (stepNumber === 1) {
+                    stepBackBtn.addClass('d-none');
+                    stepNextBtn.removeClass('d-none');
+                    savePicBtn.addClass('d-none');
+                } else if (stepNumber === 2) {
+                    stepBackBtn.removeClass('d-none');
+
+                    if (selectedRole === 'Reviewer-Maker') {
+                        stepNextBtn.removeClass('d-none');
+                        savePicBtn.addClass('d-none');
+                    } else {
+                        stepNextBtn.addClass('d-none');
+                        savePicBtn.removeClass('d-none');
+                    }
+                } else if (stepNumber === 3) {
+                    stepBackBtn.removeClass('d-none');
+                    stepNextBtn.addClass('d-none');
+                    savePicBtn.removeClass('d-none');
+                }
+
+                currentStep = stepNumber;
+            }
+
+            // Add PIC entry to the workflow
+            function addPicEntry(picData) {
+                let cssClass = '';
+                switch(picData.role) {
+                    case 'Acknowledger':
+                        cssClass = 'role-acknowledger';
+                        break;
+                    case 'Unit Head - Approver':
+                        cssClass = 'role-head';
+                        break;
+                    case 'Reviewer-Maker':
+                        cssClass = 'role-reviewer-maker';
+                        break;
+                    case 'Reviewer-Approver':
+                        cssClass = 'role-reviewer-approver';
+                        break;
+                }
+
+                // Determine where to add the PIC entry
+                if (picData.role === 'Reviewer-Approver' && picData.pairedWithMaker) {
+                    // Add inside the group with the maker
+                    const groupId = `reviewer-group-${picData.pairedWithIndex}`;
+
+                    const approverHtml = `
+                        <div class="pic-entry mt-2" data-role="${picData.role}" data-user-id="${picData.userId}">
+                            <span class="role-badge ${cssClass}">${picData.role}</span>
+                            <div class="row mt-2">
+                                <div class="col-md-4">
+                                    <strong>${picData.userName}</strong>
+                                    <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
+                                        <label class="form-check-label">Use Digital Signature</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <textarea name="pics[${picIndex}][notes]" class="form-control" placeholder="Notes (optional)"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    $(`#${groupId}`).append(approverHtml);
+                } else if (picData.role === 'Reviewer-Maker') {
+                    // Create a new reviewer group
+                    const groupHtml = `
+                        <div class="reviewer-group" id="reviewer-group-${picIndex}">
+                            <div class="reviewer-header">
+                                <h6 class="mb-0">Reviewer Group</h6>
+                                <span class="reviewer-badge">Maker + Approver</span>
+                            </div>
+
+                            <div class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}">
+                                <span class="role-badge ${cssClass}">${picData.role}</span>
+                                <div class="row mt-2">
+                                    <div class="col-md-4">
+                                        <strong>${picData.userName}</strong>
+                                        <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
+                                        <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <small class="text-muted">${picData.userUnit}</small>
+                                        <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
+                                            <label class="form-check-label">Use Digital Signature</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <textarea name="pics[${picIndex}][notes]" class="form-control" placeholder="Notes (optional)"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    picContainer.append(groupHtml);
+                } else {
+                    // Regular entry (Acknowledger or Unit Head)
+                    const entryHtml = `
+                        <div class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}">
+                            <span class="role-badge ${cssClass}">${picData.role}</span>
+                            <div class="row mt-2">
+                                <div class="col-md-4">
+                                    <strong>${picData.userName}</strong>
+                                    <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
+                                    <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">${picData.userUnit}</small>
+                                    <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
+                                        <label class="form-check-label">Use Digital Signature</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <textarea name="pics[${picIndex}][notes]" class="form-control" placeholder="Notes (optional)"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    picContainer.append(entryHtml);
+                }
+
+                picIndex++;
+
+                // Validate workflow after adding
+                validateWorkflowWithBudget(totalBudget);
+            }
+
+            // Event Handlers
+
+            // Add PIC button
+            addPicBtn.click(function() {
+                // Reset modal
+                unitKerjaSelect.val(null).trigger('change');
+                employeeSelect.empty().prop('disabled', true);
+                approverUnitKerjaSelect.val(null).trigger('change');
+                approverSelect.empty().prop('disabled', true);
+                $("#jabatan-display").text("N/A");
+                $("#approver-jabatan-display").text("N/A");
+                $("#jabatan-input").val("");
+                $("#approver-jabatan-input").val("");
+
+                // Load available roles
+                loadAvailableRoles();
+
+                // Reset step
+                showStep(1);
+
+                // Show modal
+                modal.modal('show');
             });
 
-            // Event delegation for remove buttons
-            $(document).on("click", ".remove-pic", function() {
-                $(this).closest("tr").remove();
+            // Role selection
+            roleSelect.change(function() {
+                selectedRole = $(this).val();
+
+                // Show/hide reviewer-approver section based on role
+                if (selectedRole === 'Reviewer-Maker') {
+                    $("#reviewer-approver-section").removeClass('d-none');
+                } else {
+                    $("#reviewer-approver-section").addClass('d-none');
+                }
+            });
+
+            // Unit kerja selection
+            unitKerjaSelect.on('select2:select', function(e) {
+                const unitKerja = e.params.data.id;
+                loadEmployees(unitKerja, selectedRole);
+            });
+
+            // Employee selection
+            employeeSelect.on('change', function() {
+                const userId = $(this).val();
+                if (userId) {
+                    selectedUserId = userId;
+                    selectedUserName = $(this).find('option:selected').text();
+                    selectedUserUnit = $(this).find('option:selected').data('unit');
+                    fetchJabatan(userId, $("#jabatan-display"), $("#jabatan-input"));
+                }
+            });
+
+            // Approver unit kerja selection
+            approverUnitKerjaSelect.on('select2:select', function(e) {
+                const unitKerja = e.params.data.id;
+                loadApprovers(unitKerja);
+            });
+
+            // Approver selection
+            approverSelect.on('change', function() {
+                const userId = $(this).val();
+                if (userId) {
+                    approverUserId = userId;
+                    approverUserName = $(this).find('option:selected').text();
+                    approverUserUnit = $(this).find('option:selected').data('unit');
+                    fetchJabatan(userId, $("#approver-jabatan-display"), $("#approver-jabatan-input"));
+                }
+            });
+
+            // Next step button
+            stepNextBtn.click(function() {
+                if (currentStep === 1) {
+                    if (!selectedRole) {
+                        alert('Please select a role first');
+                        return;
+                    }
+                    showStep(2);
+                } else if (currentStep === 2) {
+                    if (!selectedUserId) {
+                        alert('Please select an employee first');
+                        return;
+                    }
+                    selectedJabatan = $("#jabatan-input").val();
+                    showStep(3);
+                }
+            });
+
+            // Back button
+            stepBackBtn.click(function() {
+                if (currentStep > 1) {
+                    showStep(currentStep - 1);
+                }
+            });
+
+            // Save PIC button
+            savePicBtn.click(function() {
+                if (currentStep === 2) {
+                    if (!selectedUserId) {
+                        alert('Please select an employee first');
+                        return;
+                    }
+
+                    // Add regular PIC (Acknowledger or Unit Head)
+                    selectedJabatan = $("#jabatan-input").val();
+
+                    addPicEntry({
+                        role: selectedRole,
+                        userId: selectedUserId,
+                        userName: selectedUserName,
+                        userUnit: selectedUserUnit,
+                        jabatan: selectedJabatan
+                    });
+
+                    modal.modal('hide');
+                } else if (currentStep === 3) {
+                    if (!approverUserId) {
+                        alert('Please select a reviewer-approver first');
+                        return;
+                    }
+
+                    // Add reviewer-maker
+                    selectedJabatan = $("#jabatan-input").val();
+                    const makerIndex = picIndex;
+
+                    addPicEntry({
+                        role: selectedRole,
+                        userId: selectedUserId,
+                        userName: selectedUserName,
+                        userUnit: selectedUserUnit,
+                        jabatan: selectedJabatan
+                    });
+
+                    // Add reviewer-approver
+                    approverJabatan = $("#approver-jabatan-input").val();
+
+                    addPicEntry({
+                        role: 'Reviewer-Approver',
+                        userId: approverUserId,
+                        userName: approverUserName,
+                        userUnit: approverUserUnit,
+                        jabatan: approverJabatan,
+                        pairedWithMaker: true,
+                        pairedWithIndex: makerIndex
+                    });
+
+                    modal.modal('hide');
+                }
+            });
+
+            // Remove PIC button (event delegation)
+            $(document).on('click', '.remove-pic', function() {
+                const picEntry = $(this).closest('.pic-entry');
+                const picRole = picEntry.data('role');
+
+                if (picRole === 'Reviewer-Maker') {
+                    // If removing a maker, also remove the entire group including approver
+                    $(this).closest('.reviewer-group').remove();
+                } else if (picRole === 'Reviewer-Approver') {
+                    // If removing an approver, also remove the maker
+                    $(this).closest('.reviewer-group').remove();
+                } else {
+                    // Regular removal
+                    picEntry.remove();
+                }
+
+                // Revalidate workflow
+                validateWorkflowWithBudget(totalBudget);
             });
 
             // Handle "Save as Draft" button
@@ -884,14 +1392,20 @@
                     type: 'hidden',
                     name: 'is_draft',
                     value: '1'
-                }).appendTo('form');
+                }).appendTo('#workflow-form');
 
                 // Submit the form
-                $('form').submit();
+                $('#workflow-form').submit();
             });
 
             // Initialize Select2 for the account select
             $('#account').select2();
+
+            // Initialize the budget value for validation
+            totalBudget = parseInt($('#total_nilai').val() || 0);
+
+            // Run initial validation
+            validateWorkflowWithBudget(totalBudget);
         });
     </script>
 @endsection

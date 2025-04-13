@@ -41,18 +41,14 @@ Route::prefix('user/ticket')->controller(TicketController::class)->group(functio
     Route::get('{id}/delete', 'destroy');
 });
 
-
 Route::get('/user/home', [HomeController::class, 'homeUser']);
-
 
 // User Registration
 Route::post('/user/regis', [RegistrasiController::class, 'store']);
 
-
 Route::get('hehe', [MasterKaryawanController::class, 'getAllKaryawan']);
 Route::get('hihi', [MasterKaryawanController::class, 'detailKaryawan']);
 Route::get('wkwk', [MasterKaryawanController::class, 'getAllUsers']);
-
 
 // Define your workflow action routes
 Route::get('workflow-actions/find-users', [WorkflowController::class, 'findUsers'])
@@ -67,9 +63,12 @@ Route::get('workflow-actions/get-unit-kerja', [WorkflowController::class, 'getUn
 Route::get('workflow-actions/get-employees', [WorkflowController::class, 'getEmployees'])
     ->name('workflows.get-employees');
 
-
 Route::get('workflow-actions/get-user-roles', [WorkflowController::class, 'getUserRoles'])
     ->name('workflows.get-user-roles');
+
+// NEW: Add the getAvailableRoles endpoint for dynamic role selection
+Route::get('workflow-actions/getAvailableRoles', [WorkflowController::class, 'getAvailableRoles'])
+    ->name('workflows.getAvailableRoles');
 
 // Keep the approval and rejection routes with the workflows prefix
 Route::post('workflows/{workflow}/approve', [WorkflowController::class, 'approve'])
@@ -84,13 +83,11 @@ Route::post('workflows/{workflow}/draft', [WorkflowController::class, 'draft'])
 // Then use the standard resource routes
 Route::resource('workflows', WorkflowController::class);
 
-
 Route::get('meta/find-users', [WorkflowController::class, 'findUsers']);
 Route::get('meta/fetch-jabatan', [WorkflowController::class, 'fetchJabatan']);
 
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {
-
     Route::resource('master-user', MasterUserController::class);
     Route::post('get-user-details', [MasterUserController::class, 'getUserDetailsByNik'])->name('get-user-details');
 
@@ -106,7 +103,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('{id}/edit', 'viewDetail');
     });
 
-    // Process Tickets (Duplicate Route Removed)
+    // Process Tickets
     Route::get('/process/ticket/{status}', [AdminTicketController::class, 'viewManage']);
 });
 

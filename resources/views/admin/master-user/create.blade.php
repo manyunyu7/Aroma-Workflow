@@ -45,6 +45,32 @@
         #roleOptions div:hover {
             background-color: #e9ecef;
         }
+
+        /* Styles for search results table */
+        #searchResultsTable tbody tr {
+            cursor: pointer;
+        }
+
+        #searchResultsTable tbody tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        #searchResultsTable tbody tr.table-primary {
+            background-color: #b8daff;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
     </style>
 @endpush
 
@@ -62,10 +88,20 @@
                 <div class="row">
                     <div class="col-md-6 col-12">
                         <div class="form-group">
+                            <label>User Search</label>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" placeholder="Search by name" id="searchNameInput" aria-label="Search by name">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="searchUserBtn">Search</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
                             <label>NIK</label>
                             <div class="input-group">
                                 <input type="text" class="form-control @error('nik') is-invalid @enderror" id="nik"
-                                    name="nik" value="{{ old('nik') }}" placeholder="Enter NIK">
+                                    name="nik" value="{{ old('nik') }}" placeholder="Enter NIK" readonly>
                                 <div class="input-group-append">
                                     <button class="btn btn-primary" type="button" id="checkNikBtn">Check</button>
                                 </div>
@@ -248,6 +284,57 @@
                                     </div>
                                 </div>
 
+                                <!-- User Search Modal -->
+                                <div id="searchModal" class="modal fade" tabindex="-1" role="dialog">
+                                    <div class="modal-dialog modal-lg" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Search User</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body position-relative">
+                                                <div class="form-group">
+                                                    <label for="searchNameModal">Search by Name</label>
+                                                    <div class="input-group mb-3">
+                                                        <input type="text" class="form-control" id="searchNameModal" placeholder="Enter name to search">
+                                                        <div class="input-group-append">
+                                                            <button class="btn btn-primary" type="button" id="searchModalBtn">Search</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div id="searchResults" class="mt-4">
+                                                    <table id="searchResultsTable" class="table table-bordered table-hover">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>NIK</th>
+                                                                <th>Name</th>
+                                                                <th>Unit Kerja</th>
+                                                                <th>Jabatan</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <!-- Search results will be populated here -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                <!-- Loading overlay -->
+                                                <div id="loadingOverlay" class="loading-overlay d-none">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="mt-3">
                                     <table id="roleTable" class="table table-bordered">
                                         <thead>
@@ -345,7 +432,154 @@
                 return new Intl.NumberFormat('id-ID').format(amount);
             }
 
-            // Handle checking NIK
+            // ===== USER SEARCH FUNCTIONALITY =====
+            // Open search modal when search button is clicked
+            $('#searchUserBtn').click(function() {
+                $('#searchModal').modal('show');
+                $('#searchNameModal').val($('#searchNameInput').val());
+            });
+
+            // Transfer search text from input to modal when opened
+            $('#searchModal').on('shown.bs.modal', function() {
+                $('#searchNameModal').val($('#searchNameInput').val());
+                // Auto-focus the search input
+                $('#searchNameModal').focus();
+
+                // If there's already a search term, trigger search automatically
+                if ($('#searchNameModal').val().trim() !== '') {
+                    $('#searchModalBtn').click();
+                }
+            });
+
+            // Transfer search text from modal to input when closed
+            $('#searchModal').on('hidden.bs.modal', function() {
+                $('#searchNameInput').val($('#searchNameModal').val());
+            });
+
+            // Search functionality within modal
+            $('#searchModalBtn').click(function() {
+                const searchTerm = $('#searchNameModal').val().trim();
+                if (searchTerm === '') {
+                    alert('Please enter a name to search');
+                    return;
+                }
+
+                // Show loading overlay
+                $('#loadingOverlay').removeClass('d-none');
+
+                // Make AJAX request to search for users
+                $.ajax({
+                    url: "{{ route('admin.search-employees') }}",
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        param: searchTerm
+                    },
+                    success: function(response) {
+                        // Clear previous results
+                        const tbody = $('#searchResultsTable tbody');
+                        tbody.empty();
+
+                        if (response.data && response.data.length > 0) {
+                            // Populate search results table
+                            response.data.forEach(function(employee) {
+                                const personal = employee.personal || {};
+                                const detail = employee.detail || {};
+
+                                // Extract values properly based on the provided JSON structure
+                                let unit = '';
+                                let position = '';
+                                let objectId = '';
+
+                                // For direct properties in detail
+                                if (detail.unit) {
+                                    unit = detail.unit;
+                                    position = detail.nama_posisi || '';
+                                    objectId = detail.object_id || '';
+                                }
+                                // For properties in detail.payload
+                                else if (detail.payload) {
+                                    unit = detail.payload.unit || '';
+                                    position = detail.payload.nama_posisi || '';
+                                    objectId = detail.payload.object_id || '';
+                                }
+
+                                const row = `
+                                <tr data-nik="${personal.nik || ''}" data-name="${personal.name || ''}"
+                                    data-unit="${unit}" data-position="${position}"
+                                    data-objectid="${objectId}">
+                                    <td>${personal.nik || '-'}</td>
+                                    <td>${personal.name || '-'}</td>
+                                    <td>${unit || '-'}</td>
+                                    <td>${position || '-'}</td>
+                                </tr>
+                                `;
+                                tbody.append(row);
+                            });
+                        } else {
+                            tbody.append('<tr><td colspan="4" class="text-center">No results found</td></tr>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error searching for users: ' + error);
+                        console.error('Search error:', xhr.responseText);
+                    },
+                    complete: function() {
+                        // Hide loading overlay
+                        $('#loadingOverlay').addClass('d-none');
+                    }
+                });
+            });
+
+            // Handle row selection in search results
+            $(document).on('click', '#searchResultsTable tbody tr', function() {
+                // Skip if this is a "no results" row
+                if ($(this).find('td[colspan]').length > 0) return;
+
+                // Get user data from selected row
+                const nik = $(this).data('nik');
+                const name = $(this).data('name');
+                const unit = $(this).data('unit');
+                const position = $(this).data('position');
+                const objectId = $(this).data('objectid');
+
+                // Populate form fields directly from search results
+                $('#nik').val(nik);
+                $('#nama').val(name);
+                $('#unit_kerja').val(unit || ''); // Handle potential undefined
+                $('#jabatan').val(position || ''); // Handle potential undefined
+                $('#object_id').val(objectId || '');
+
+                // Close the modal
+                $('#searchModal').modal('hide');
+
+                // Highlight the row to show it's selected
+                $('#searchResultsTable tbody tr').removeClass('table-primary');
+                $(this).addClass('table-primary');
+
+                // If any data is missing, automatically perform a detailed check
+                if (nik && (!unit || !position || !objectId)) {
+                    // Simulate clicking the check button to get complete data
+                    $('#checkNikBtn').trigger('click');
+                }
+            });
+
+            // Allow pressing Enter in search field to trigger search
+            $('#searchNameModal').keypress(function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $('#searchModalBtn').click();
+                }
+            });
+
+            $('#searchNameInput').keypress(function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $('#searchUserBtn').click();
+                }
+            });
+
+            // Handle checking NIK for validation and complete data
             $('#checkNikBtn').click(function() {
                 const nik = $('#nik').val();
                 if (!nik) {

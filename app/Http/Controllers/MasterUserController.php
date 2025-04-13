@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\CatalystHelper;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 
 class MasterUserController extends Controller
@@ -250,5 +252,91 @@ class MasterUserController extends Controller
                 'object_id' => $userDetails['object_id'] ?? null,
             ]
         ]);
+    }
+
+
+    /**
+     * Search employees by name or part of name
+     */
+    public function searchEmployees(Request $request)
+    {
+        $searchParam = $request->input('param');
+
+        if (empty($searchParam)) {
+            return response()->json(['error' => 'Search parameter is required'], 400);
+        }
+
+        try {
+            // Get employees from Catalyst API
+            $clientIdPersonal = "9964612a-f658-4d31-8f28-f146dd8c8eb3";
+            $clientSecretPersonal = "LZFCNQ0QrMcvMxUjJqkolRkPaySQh0hJVwTRGusb";
+            $endpointPersonal = "https://catalyst.telkomakses.co.id:2101/api/v1/employee/personal";
+
+            $clientIdDetail = "9ae6194e-ab57-4936-ab34-08877c9b2382";
+            $clientSecretDetail = "BvmTwAFR8Ku112gPvuULOoIZHQr1VWZrjtuKGc99";
+            $endpointDetail = "https://catalyst.telkomakses.co.id:2101/api/v1/employee/detail";
+
+            // Get access token for personal data
+            $accessTokenPersonal = CatalystHelper::getCatalystAccessToken($clientIdPersonal, $clientSecretPersonal);
+            if (!$accessTokenPersonal) {
+                return response()->json(['error' => 'Failed to retrieve access token for personal data'], 500);
+            }
+
+            // Fetch list of employees
+            $personalResponse = Http::withToken($accessTokenPersonal)->post($endpointPersonal, [
+                'param' => $searchParam,
+            ]);
+
+            if ($personalResponse->failed()) {
+                return response()->json(['error' => 'Failed to retrieve employee personal data'], $personalResponse->status());
+            }
+
+            $employees = $personalResponse->json();
+            if (!isset($employees['payload']) || empty($employees['payload'])) {
+                return response()->json([
+                    'state' => 'success',
+                    'code' => 200,
+                    'data' => []
+                ]);
+            }
+
+            // Get access token for detail data
+            $accessTokenDetail = CatalystHelper::getCatalystAccessToken($clientIdDetail, $clientSecretDetail);
+            if (!$accessTokenDetail) {
+                return response()->json(['error' => 'Failed to retrieve access token for employee details'], 500);
+            }
+
+            // Fetch details for each employee using NIK
+            $detailedEmployees = [];
+            foreach ($employees['payload'] as $employee) {
+                $nik = $employee['nik'] ?? null;
+                if (!$nik) continue;
+
+                $detailResponse = Http::withToken($accessTokenDetail)->post($endpointDetail, [
+                    'nik' => $nik,
+                ]);
+
+                $detailData = $detailResponse->json();
+
+                // Process detail data to match expected format
+                $detailedEmployees[] = [
+                    'personal' => $employee,
+                    'detail' => $detailData
+                ];
+            }
+
+            return response()->json([
+                'state' => 'success',
+                'code' => 200,
+                'data' => $detailedEmployees,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error searching employees: ' . $e->getMessage());
+            return response()->json([
+                'state' => 'error',
+                'code' => 500,
+                'message' => 'An error occurred while searching for employees: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

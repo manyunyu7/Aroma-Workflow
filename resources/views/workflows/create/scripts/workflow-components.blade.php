@@ -6,6 +6,7 @@
         const modal = $("#pic-modal");
         const roleSelect = $("#role-select");
         const unitKerjaSelect = $("#unit-kerja-select");
+        const unitKerjaSelectionHeader = $("#unit-kerja-section-header");
         const employeeSelect = $("#employee-select");
         const userSelectionContainer = $("#user-selection-container");
         const approverUnitKerjaSelect = $("#approver-unit-kerja-select");
@@ -103,27 +104,46 @@
         }
 
         // Check budget changes to update workflow rules
+        // Make sure the budget change handler updates role availability
         window.checkBudgetChanges = function(budget) {
             totalBudget = budget;
 
             let budgetInfoHtml = '<i class="fas fa-info-circle mr-2"></i>';
-            if (budget < 500000000) {
-                budgetInfoHtml +=
-                    'Budget under 500,000,000 IDR: Acknowledger and Unit Head must be from the same unit.';
+
+            // Build a comprehensive message about all budget thresholds
+            budgetInfoHtml += 'Budget rules: ';
+
+            if (budget > 500000000) {
+                budgetInfoHtml += 'Over 500,000,000 IDR: Acknowledger is optional. ';
             } else {
-                budgetInfoHtml += 'Budget is 500,000,000 IDR or higher: Standard approval rules apply.';
+                budgetInfoHtml += 'Under 500,000,000 IDR: Standard Acknowledger rules apply. ';
+            }
+
+            if (budget < 3000000000) {
+                budgetInfoHtml += 'Under 3,000,000,000 IDR: Unit Head must be from your unit kerja.';
+            } else {
+                budgetInfoHtml += 'Over 3,000,000,000 IDR: Unit Head can be from any unit.';
             }
 
             $("#budget-info-alert").html(budgetInfoHtml);
 
             // If current workflow violates the new budget rules, show a warning
             validateWorkflowWithBudget(budget);
+
+            // Reload available roles if the modal is open
+            if (modal.is(':visible')) {
+                loadAvailableRoles();
+            }
         };
 
         // Validate workflow based on budget rules
+        // Validate workflow based on budget rules
         function validateWorkflowWithBudget(budget) {
-            if (budget < 500000000) {
-                // Check if acknowledger and unit head are from the same unit
+            // First remove any existing warnings
+            $('#unit-mismatch-warning').remove();
+
+            // Check if acknowledger and unit head are from the same unit (for budgets < 500M)
+            if (budget <= 500000000) {
                 let acknowledgerEntry = null;
                 let headEntry = null;
 
@@ -140,31 +160,53 @@
 
                     if (acknowledgerUnit !== headUnit) {
                         // Show warning
-                        if (!$('#unit-mismatch-warning').length) {
-                            const warningHtml = `
-                            <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
-                                <i class="fas fa-exclamation-triangle mr-2"></i>
-                                <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
-                                Please update your approvers.
-                            </div>
-                        `;
-                            $('#pic-container').before(warningHtml);
-                        }
-                    } else {
-                        // Remove warning if exists
-                        $('#unit-mismatch-warning').remove();
+                        const warningHtml = `
+                <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
+                    Please update your approvers.
+                </div>
+                `;
+                        $('#pic-container').before(warningHtml);
+                        return; // Exit early to avoid showing multiple warnings
                     }
                 }
-            } else {
-                // For higher budgets, remove warning if exists
-                $('#unit-mismatch-warning').remove();
+            }
+
+            // Check if Unit Head is from current user's unit (for budgets < 3B)
+            if (budget < 3000000000) {
+                let headEntry = null;
+                const currentUserUnitKerja = "{{ $user->unit_kerja }}";
+
+                $(".pic-entry").each(function() {
+                    const role = $(this).data('role');
+                    if (role === 'Unit Head - Approver') headEntry = $(this);
+                });
+
+                if (headEntry) {
+                    const headUnit = headEntry.find('small.text-muted').text();
+
+                    if (headUnit !== currentUserUnitKerja) {
+                        // Show warning
+                        const warningHtml = `
+                <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <strong>Warning:</strong> For budgets under 3,000,000,000 IDR, the Unit Head must be from your unit (${currentUserUnitKerja}).
+                    Please update your Unit Head selection.
+                </div>
+                `;
+                        $('#pic-container').before(warningHtml);
+                    }
+                }
             }
         }
 
         // Load available roles based on current workflow
+        // Role loading function - Modified to handle Acknowledger visibility based on budget
         function loadAvailableRoles() {
             const roles = getCurrentRoles();
-            const budget = $('#total_nilai').val() || 0;
+            const budget = parseFloat($('#total_nilai').val() || 0);
+            let acknowledgerHidden = false; // Track if we're hiding the Acknowledger role
 
             // Get available roles from the server
             $.ajax({
@@ -178,9 +220,51 @@
                     roleSelect.empty();
                     roleSelect.append('<option value="">-- Select Role --</option>');
 
-                    data.forEach(function(role) {
-                        roleSelect.append(`<option value="${role}">${role}</option>`);
-                    });
+                    // Check if we should hide Acknowledger option (budget > 500,000,000)
+                    if (budget > 500000000) {
+                        // Filter out Acknowledger from available roles
+                        const filteredRoles = data.filter(role => role !== 'Acknowledger');
+                        acknowledgerHidden = data.includes(
+                            'Acknowledger'); // Check if Acknowledger was available but we're hiding it
+
+                        // Add the filtered roles to the dropdown
+                        filteredRoles.forEach(function(role) {
+                            roleSelect.append(`<option value="${role}">${role}</option>`);
+                        });
+                    } else {
+                        // For lower budgets, show all available roles
+                        data.forEach(function(role) {
+                            roleSelect.append(`<option value="${role}">${role}</option>`);
+                        });
+                    }
+
+                    // If Acknowledger was available but hidden due to budget constraint,
+                    // add an option to show it if the user wants to
+                    if (acknowledgerHidden) {
+                        // Remove any existing "Show Acknowledger" button
+                        $("#show-acknowledger-btn").remove();
+
+                        // Add a button to show the Acknowledger option
+                        $(`<button id="show-acknowledger-btn" type="button" class="btn btn-outline-secondary btn-sm mt-2">
+                    <i class="fas fa-plus-circle mr-1"></i> Add Acknowledger Role (Optional)
+                </button>`).insertAfter(roleSelect);
+
+                        // Handle the button click event
+                        $("#show-acknowledger-btn").click(function() {
+                            // Show a confirmation dialog
+                            if (confirm(
+                                    "For budgets over 500,000,000, an Acknowledger is optional. Do you want to add an Acknowledger to this workflow?"
+                                )) {
+                                // Add the Acknowledger option to the dropdown
+                                roleSelect.append(
+                                    `<option value="Acknowledger">Acknowledger</option>`);
+                                // Select the Acknowledger option
+                                roleSelect.val("Acknowledger").trigger('change');
+                                // Hide the button
+                                $(this).remove();
+                            }
+                        });
+                    }
 
                     // If no roles available, show message
                     if (data.length === 0) {
@@ -401,11 +485,12 @@
         // Event Handlers
 
         // Add PIC button
+        // Update modal initialization to reflect budget value
         addPicBtn.click(function() {
             // Reset modal
             resetModal();
 
-            // Load available roles
+            // Load available roles (with Acknowledger filtering based on budget)
             loadAvailableRoles();
 
             // Show modal
@@ -434,26 +519,154 @@
             savePicBtn.addClass('d-none');
         }
 
-        // Role selection
+        // Role selection event handler - Triggered when a user selects a different role from the dropdown
+        // Role selection event handler - Modified to handle Acknowledger role selection
+        // Role selection event handler - Modified to handle Acknowledger and Unit Head role selection
         roleSelect.change(function() {
             selectedRole = $(this).val();
+            const budget = parseFloat($('#total_nilai').val() || 0);
 
             if (selectedRole) {
                 // Show user selection section
                 userSelectionContainer.removeClass('d-none');
 
+                // Remove any previous info messages
+                $("#unit-kerja-info").remove();
+                $("#role-description-info").remove();
+
+                // Add role-specific descriptions to help the user understand the purpose of each role
+                const budgetFormatted = new Intl.NumberFormat('id-ID').format(budget);
+
+                let roleDescription = '';
+
+                if (selectedRole === 'Acknowledger') {
+                    roleDescription = `
+                    <div id="role-description-info" class="alert alert-primary mb-3 mt-3">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>About the Acknowledger Role:</strong>
+                        <ul class="mb-0 mt-1">
+                            <li>Acknowledges the workflow before it proceeds to review/approval stages</li>
+                            <li>For budgets over 500,000,000 IDR, this role is optional</li>
+                            <li>Current budget: IDR ${budgetFormatted}</li>
+                        </ul>
+                    </div>
+                `;
+                } else if (selectedRole === 'Unit Head - Approver') {
+                    roleDescription = `
+                <div id="role-description-info" class="alert alert-primary mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>About the Unit Head - Approver Role:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li>Department head who approves the workflow</li>
+                        <li>For budgets under 500,000,000 IDR, must be from the same unit as the Acknowledger (if one exists)</li>
+                        <li>For budgets under 3,000,000,000 IDR, must be from your unit kerja</li>
+                        <li>Current budget: IDR ${budgetFormatted}</li>
+                    </ul>
+                </div>
+            `;
+                } else if (selectedRole === 'Reviewer-Maker') {
+                    roleDescription = `
+                <div id="role-description-info" class="alert alert-primary mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>About the Reviewer-Maker Role:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li>Creates a formal review of the workflow</li>
+                        <li>Must be paired with a Reviewer-Approver</li>
+                        <li>You'll need to select both the Reviewer-Maker and their corresponding Reviewer-Approver</li>
+                    </ul>
+                </div>
+            `;
+                }
+
+                // Insert role description at the top of the modal body
+                if (roleDescription) {
+                    $(roleDescription).insertAfter(roleSelect);
+                }
+
+                // Get current user's unit kerja
+                const currentUserUnitKerja = "{{ $user->unit_kerja }}";
+
+                // Auto-select unit kerja for Acknowledger role
+                if (selectedRole === 'Acknowledger') {
+                    // Create the option if it doesn't exist
+                    if (unitKerjaSelect.find(`option[value="${currentUserUnitKerja}"]`).length === 0) {
+                        const newOption = new Option(currentUserUnitKerja, currentUserUnitKerja, true, true);
+                        unitKerjaSelect.append(newOption).trigger('change');
+                    } else {
+                        unitKerjaSelect.val(currentUserUnitKerja).trigger('change');
+                    }
+
+                    // Add info message for Unit Kerja constraint
+                    $("<div id='unit-kerja-info' class='alert alert-info mt-2 mb-3'>" +
+                        "<i class='fas fa-lock mr-2'></i>" +
+                        "<strong>Unit Kerja automatically set</strong><br>" +
+                        "For the Acknowledger role, only employees from your unit kerja (" +
+                        currentUserUnitKerja + ") can be selected. " +
+                        "This ensures proper workflow within your department." +
+                        "</div>").insertAfter(unitKerjaSelectionHeader);
+
+                    // Disable the unit kerja dropdown to prevent changes
+                    unitKerjaSelect.prop('disabled', true);
+
+                    // Automatically load employees from the current user's unit kerja
+                    loadEmployees(currentUserUnitKerja, selectedRole);
+                }
+                // Auto-select unit kerja for Unit Head - Approver role if budget < 3B
+                else if (selectedRole === 'Unit Head - Approver' && budget < 3000000000) {
+                    // Create the option if it doesn't exist
+                    if (unitKerjaSelect.find(`option[value="${currentUserUnitKerja}"]`).length === 0) {
+                        const newOption = new Option(currentUserUnitKerja, currentUserUnitKerja, true, true);
+                        unitKerjaSelect.append(newOption).trigger('change');
+                    } else {
+                        unitKerjaSelect.val(currentUserUnitKerja).trigger('change');
+                    }
+
+                    // Add info message for Unit Kerja constraint
+                    $("<div id='unit-kerja-info' class='alert alert-info mt-2 mb-3'>" +
+                        "<i class='fas fa-lock mr-2'></i>" +
+                        "<strong>Unit Kerja automatically set</strong><br>" +
+                        "For budgets under 3,000,000,000 IDR, the Unit Head must be from your unit kerja (" +
+                        currentUserUnitKerja + "). " +
+                        "This ensures proper approval within your department." +
+                        "</div>").insertAfter(unitKerjaSelect);
+
+                    // Disable the unit kerja dropdown to prevent changes
+                    unitKerjaSelect.prop('disabled', true);
+
+                    // Automatically load employees from the current user's unit kerja
+                    loadEmployees(currentUserUnitKerja, selectedRole);
+                } else {
+                    // For other roles, enable the select
+                    unitKerjaSelect.prop('disabled', false);
+
+                    // Reset employee selection
+                    employeeSelect.empty().prop('disabled', true);
+                }
+
+                // Reset other selections
+                approverUnitKerjaSelect.val(null).trigger('change');
+                approverSelect.empty().prop('disabled', true);
+
                 // Show/hide reviewer-approver section based on role
                 if (selectedRole === 'Reviewer-Maker') {
                     reviewerApproverSection.removeClass('d-none');
+
+                    // Add specific guidance for the reviewer-approver selection
+                    if (!$("#reviewer-approver-guidance").length) {
+                        const reviewerGuidance = `
+                    <div id="reviewer-approver-guidance" class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Reviewer-Approver Pairing:</strong><br>
+                        Select a Reviewer-Approver who will approve the review created by the Reviewer-Maker.
+                        Both will be added to your workflow as a paired set.
+                    </div>
+                `;
+                        $(reviewerGuidance).prependTo(reviewerApproverSection);
+                    }
                 } else {
                     reviewerApproverSection.addClass('d-none');
+                    $("#reviewer-approver-guidance").remove();
                 }
-
-                // Reset selections when role changes
-                unitKerjaSelect.val(null).trigger('change');
-                employeeSelect.empty().prop('disabled', true);
-                approverUnitKerjaSelect.val(null).trigger('change');
-                approverSelect.empty().prop('disabled', true);
 
                 checkFormValidity();
             } else {
@@ -461,9 +674,13 @@
                 userSelectionContainer.addClass('d-none');
                 reviewerApproverSection.addClass('d-none');
                 savePicBtn.addClass('d-none');
+
+                // Remove any info messages
+                $("#unit-kerja-info").remove();
+                $("#role-description-info").remove();
+                $("#reviewer-approver-guidance").remove();
             }
         });
-
         // Unit kerja selection
         unitKerjaSelect.on('select2:select', function(e) {
             const unitKerja = e.params.data.id;

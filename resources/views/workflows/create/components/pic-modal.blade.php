@@ -22,9 +22,10 @@
                 <!-- User Selection Section - Shown when role is selected -->
                 <div id="user-selection-container" class="mt-4 d-none">
                     <hr>
-                    <h5 class="mb-3">Select Approver</h5>
+                    <h5 class="mb-3">Select PIC</h5>
 
                     <div class="form-group">
+                        <div id="unit-kerja-section-header"></div>
                         <label>Select Unit Kerja</label>
                         <select id="unit-kerja-select" class="form-control" style="width: 100%;">
                             <!-- Options will be populated via Select2 -->

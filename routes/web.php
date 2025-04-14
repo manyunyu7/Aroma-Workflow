@@ -81,8 +81,12 @@ Route::post('workflows/{workflow}/reject', [WorkflowController::class, 'reject']
 Route::post('workflows/{workflow}/draft', [WorkflowController::class, 'draft'])
     ->name('workflows.draft');
 
-// Then use the standard resource routes
-Route::resource('workflows', WorkflowController::class);
+//add middleware auth group with laravel default
+Route::middleware(['auth'])->group(function () {
+    Route::resource('workflows', WorkflowController::class);
+});
+
+
 
 Route::get('meta/find-users', [WorkflowController::class, 'findUsers']);
 Route::get('meta/fetch-jabatan', [WorkflowController::class, 'fetchJabatan']);

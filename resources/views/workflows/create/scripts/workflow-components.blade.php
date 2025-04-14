@@ -7,14 +7,13 @@
         const roleSelect = $("#role-select");
         const unitKerjaSelect = $("#unit-kerja-select");
         const employeeSelect = $("#employee-select");
+        const userSelectionContainer = $("#user-selection-container");
         const approverUnitKerjaSelect = $("#approver-unit-kerja-select");
         const approverSelect = $("#approver-select");
-        const stepNextBtn = $("#step-next-btn");
-        const stepBackBtn = $("#step-back-btn");
+        const reviewerApproverSection = $("#reviewer-approver-section");
         const savePicBtn = $("#save-pic-btn");
 
         let picIndex = {{ count(old('pics', [1])) }}; // Start with the next index after existing PICs
-        let currentStep = 1;
         let selectedRole = '';
         let selectedUserId = '';
         let selectedUserName = '';
@@ -143,12 +142,12 @@
                         // Show warning
                         if (!$('#unit-mismatch-warning').length) {
                             const warningHtml = `
-                                <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
-                                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                                    <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
-                                    Please update your approvers.
-                                </div>
-                            `;
+                            <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
+                                Please update your approvers.
+                            </div>
+                        `;
                             $('#pic-container').before(warningHtml);
                         }
                     } else {
@@ -188,16 +187,16 @@
                         roleSelect.append(
                             '<option value="" disabled>No roles available for current workflow</option>'
                         );
-                        stepNextBtn.prop('disabled', true);
+                        savePicBtn.prop('disabled', true);
                     } else {
-                        stepNextBtn.prop('disabled', false);
+                        savePicBtn.prop('disabled', false);
                     }
                 },
                 error: function(xhr) {
                     console.error('Error loading available roles:', xhr.responseText);
                     roleSelect.empty();
                     roleSelect.append('<option value="">Error loading roles</option>');
-                    stepNextBtn.prop('disabled', true);
+                    savePicBtn.prop('disabled', true);
                 }
             });
         }
@@ -304,37 +303,14 @@
             });
         }
 
-        // Show step in the modal
-        function showStep(stepNumber) {
-            $('.step-container').addClass('d-none');
-            $(`#step-${stepNumber}`).removeClass('d-none');
-
-            // Update buttons based on step
-            if (stepNumber === 1) {
-                stepBackBtn.addClass('d-none');
-                stepNextBtn.removeClass('d-none');
-                savePicBtn.addClass('d-none');
-            } else if (stepNumber === 2) {
-                stepBackBtn.removeClass('d-none');
-
-                if (selectedRole === 'Reviewer-Maker') {
-                    stepNextBtn.removeClass('d-none');
-                    savePicBtn.addClass('d-none');
-                } else {
-                    stepNextBtn.addClass('d-none');
-                    savePicBtn.removeClass('d-none');
-                }
-            } else if (stepNumber === 3) {
-                stepBackBtn.removeClass('d-none');
-                stepNextBtn.addClass('d-none');
-                savePicBtn.removeClass('d-none');
-            }
-
-            currentStep = stepNumber;
-        }
-
         // Add PIC entry to the workflow
         function addPicEntry(picData) {
+            // Hide empty state message when adding entries
+            $("#empty-workflow-message").hide();
+
+            // Make sure the table is visible
+            $("table", picContainer).show();
+
             let cssClass = '';
             switch (picData.role) {
                 case 'Acknowledger':
@@ -351,124 +327,52 @@
                     break;
             }
 
-            // Determine where to add the PIC entry
-            if (picData.role === 'Reviewer-Approver' && picData.pairedWithMaker) {
-                // Add inside the group with the maker
-                const groupId = `reviewer-group-${picData.pairedWithIndex}`;
-
-                const approverHtml = `
-                    <div class="pic-entry mt-2" data-role="${picData.role}" data-user-id="${picData.userId}">
-                        <span class="role-badge ${cssClass}">${picData.role}</span>
-                        <div class="row mt-2">
-                            <div class="col-md-4">
-                                <strong>${picData.userName}</strong>
-                                <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
-                                <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
-                            </div>
-                            <div class="col-md-3">
-                                <small class="text-muted">${picData.userUnit}</small>
-                                <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
-                                    <label class="form-check-label">Use Digital Signature</label>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
-                                    <i class="fas fa-times"></i> Remove
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-12">
-                                <textarea name="pics[${picIndex}][notes]" class="form-control" placeholder="Notes (optional)"></textarea>
-                            </div>
-                        </div>
+            // Create table row for the PIC
+            const rowHtml = `
+            <tr class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}" ${picData.pairedWithMaker ? 'data-paired="true"' : ''}>
+                <td>
+                    <strong>${picData.userName}</strong>
+                    <small class="d-block text-muted">${picData.userUnit}</small>
+                    <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
+                </td>
+                <td>
+                    <span class="role-badge ${cssClass}">${picData.role}</span>
+                    <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
+                    ${picData.pairedWithMaker ? '<span class="badge badge-light ml-1">Paired</span>' : ''}
+                </td>
+                <td>
+                    ${picData.jabatan}
+                    <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
+                </td>
+                <td>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
+                        <label class="form-check-label">Use Digital Signature</label>
                     </div>
-                `;
+                </td>
+                <td>
+                    <textarea name="pics[${picIndex}][notes]" class="form-control form-control-sm" placeholder="Notes (optional)" rows="2"></textarea>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
 
-                $(`#${groupId}`).append(approverHtml);
-            } else if (picData.role === 'Reviewer-Maker') {
-                // Create a new reviewer group
-                const groupHtml = `
-                    <div class="reviewer-group" id="reviewer-group-${picIndex}">
-                        <div class="reviewer-header">
-                            <h6 class="mb-0">Reviewer Group</h6>
-                            <span class="reviewer-badge">Maker + Approver</span>
-                        </div>
-
-                        <div class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}">
-                            <span class="role-badge ${cssClass}">${picData.role}</span>
-                            <div class="row mt-2">
-                                <div class="col-md-4">
-                                    <strong>${picData.userName}</strong>
-                                    <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
-                                    <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
-                                </div>
-                                <div class="col-md-3">
-                                    <small class="text-muted">${picData.userUnit}</small>
-                                    <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
-                                        <label class="form-check-label">Use Digital Signature</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-12">
-                                    <textarea name="pics[${picIndex}][notes]" class="form-control" placeholder="Notes (optional)"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                picContainer.append(groupHtml);
+            // If this is a paired reviewer, add grouping visual indicator
+            if (picData.role === 'Reviewer-Maker') {
+                // Store the current index for pairing
+                $(rowHtml).data('maker-index', picIndex);
+                $("#pic-table-body").append(rowHtml);
+            } else if (picData.role === 'Reviewer-Approver' && picData.pairedWithMaker) {
+                // Add class to show relationship with maker
+                const pairRow = $(rowHtml).addClass('reviewer-approver-row');
+                $("#pic-table-body").append(pairRow);
             } else {
                 // Regular entry (Acknowledger or Unit Head)
-                const entryHtml = `
-                    <div class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}">
-                        <span class="role-badge ${cssClass}">${picData.role}</span>
-                        <div class="row mt-2">
-                            <div class="col-md-4">
-                                <strong>${picData.userName}</strong>
-                                <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
-                                <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
-                            </div>
-                            <div class="col-md-3">
-                                <small class="text-muted">${picData.userUnit}</small>
-                                <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
-                                    <label class="form-check-label">Use Digital Signature</label>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
-                                    <i class="fas fa-times"></i> Remove
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-12">
-                                <textarea name="pics[${picIndex}][notes]" class="form-control" placeholder="Notes (optional)"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                picContainer.append(entryHtml);
+                $("#pic-table-body").append(rowHtml);
             }
 
             picIndex++;
@@ -477,39 +381,86 @@
             validateWorkflowWithBudget(totalBudget);
         }
 
+        // Check if add to workflow button should be enabled
+        function checkFormValidity() {
+            // For regular roles
+            let isValid = selectedRole && selectedUserId;
+
+            // For Reviewer-Maker role, also need an approver
+            if (selectedRole === 'Reviewer-Maker') {
+                isValid = isValid && approverUserId;
+            }
+
+            if (isValid) {
+                savePicBtn.removeClass('d-none');
+            } else {
+                savePicBtn.addClass('d-none');
+            }
+        }
+
         // Event Handlers
 
         // Add PIC button
         addPicBtn.click(function() {
             // Reset modal
-            unitKerjaSelect.val(null).trigger('change');
-            employeeSelect.empty().prop('disabled', true);
-            approverUnitKerjaSelect.val(null).trigger('change');
-            approverSelect.empty().prop('disabled', true);
-            $("#jabatan-display").text("N/A");
-            $("#approver-jabatan-display").text("N/A");
-            $("#jabatan-input").val("");
-            $("#approver-jabatan-input").val("");
+            resetModal();
 
             // Load available roles
             loadAvailableRoles();
-
-            // Reset step
-            showStep(1);
 
             // Show modal
             modal.modal('show');
         });
 
+        // Reset modal fields and visibility
+        function resetModal() {
+            selectedRole = '';
+            selectedUserId = '';
+            approverUserId = '';
+
+            roleSelect.val('');
+            unitKerjaSelect.val(null).trigger('change');
+            employeeSelect.empty().prop('disabled', true);
+            approverUnitKerjaSelect.val(null).trigger('change');
+            approverSelect.empty().prop('disabled', true);
+
+            $("#jabatan-display").text("N/A");
+            $("#approver-jabatan-display").text("N/A");
+            $("#jabatan-input").val("");
+            $("#approver-jabatan-input").val("");
+
+            userSelectionContainer.addClass('d-none');
+            reviewerApproverSection.addClass('d-none');
+            savePicBtn.addClass('d-none');
+        }
+
         // Role selection
         roleSelect.change(function() {
             selectedRole = $(this).val();
 
-            // Show/hide reviewer-approver section based on role
-            if (selectedRole === 'Reviewer-Maker') {
-                $("#reviewer-approver-section").removeClass('d-none');
+            if (selectedRole) {
+                // Show user selection section
+                userSelectionContainer.removeClass('d-none');
+
+                // Show/hide reviewer-approver section based on role
+                if (selectedRole === 'Reviewer-Maker') {
+                    reviewerApproverSection.removeClass('d-none');
+                } else {
+                    reviewerApproverSection.addClass('d-none');
+                }
+
+                // Reset selections when role changes
+                unitKerjaSelect.val(null).trigger('change');
+                employeeSelect.empty().prop('disabled', true);
+                approverUnitKerjaSelect.val(null).trigger('change');
+                approverSelect.empty().prop('disabled', true);
+
+                checkFormValidity();
             } else {
-                $("#reviewer-approver-section").addClass('d-none');
+                // Hide sections if no role selected
+                userSelectionContainer.addClass('d-none');
+                reviewerApproverSection.addClass('d-none');
+                savePicBtn.addClass('d-none');
             }
         });
 
@@ -527,6 +478,10 @@
                 selectedUserName = $(this).find('option:selected').text();
                 selectedUserUnit = $(this).find('option:selected').data('unit');
                 fetchJabatan(userId, $("#jabatan-display"), $("#jabatan-input"));
+                checkFormValidity();
+            } else {
+                selectedUserId = '';
+                checkFormValidity();
             }
         });
 
@@ -544,62 +499,29 @@
                 approverUserName = $(this).find('option:selected').text();
                 approverUserUnit = $(this).find('option:selected').data('unit');
                 fetchJabatan(userId, $("#approver-jabatan-display"), $("#approver-jabatan-input"));
-            }
-        });
-
-        // Next step button
-        stepNextBtn.click(function() {
-            if (currentStep === 1) {
-                if (!selectedRole) {
-                    alert('Please select a role first');
-                    return;
-                }
-                showStep(2);
-            } else if (currentStep === 2) {
-                if (!selectedUserId) {
-                    alert('Please select an employee first');
-                    return;
-                }
-                selectedJabatan = $("#jabatan-input").val();
-                showStep(3);
-            }
-        });
-
-        // Back button
-        stepBackBtn.click(function() {
-            if (currentStep > 1) {
-                showStep(currentStep - 1);
+                checkFormValidity();
+            } else {
+                approverUserId = '';
+                checkFormValidity();
             }
         });
 
         // Save PIC button
         savePicBtn.click(function() {
-            if (currentStep === 2) {
-                if (!selectedUserId) {
-                    alert('Please select an employee first');
-                    return;
-                }
+            if (!selectedRole || !selectedUserId) {
+                alert('Please complete all required selections');
+                return;
+            }
 
-                // Add regular PIC (Acknowledger or Unit Head)
-                selectedJabatan = $("#jabatan-input").val();
+            selectedJabatan = $("#jabatan-input").val();
 
-                addPicEntry({
-                    role: selectedRole,
-                    userId: selectedUserId,
-                    userName: selectedUserName,
-                    userUnit: selectedUserUnit,
-                    jabatan: selectedJabatan
-                });
-
-                modal.modal('hide');
-            } else if (currentStep === 3) {
+            if (selectedRole === 'Reviewer-Maker') {
                 if (!approverUserId) {
-                    alert('Please select a reviewer-approver first');
+                    alert('Please select a reviewer-approver');
                     return;
                 }
 
                 // Add reviewer-maker
-                selectedJabatan = $("#jabatan-input").val();
                 const makerIndex = picIndex;
 
                 addPicEntry({
@@ -622,9 +544,18 @@
                     pairedWithMaker: true,
                     pairedWithIndex: makerIndex
                 });
-
-                modal.modal('hide');
+            } else {
+                // Add regular PIC (Acknowledger or Unit Head)
+                addPicEntry({
+                    role: selectedRole,
+                    userId: selectedUserId,
+                    userName: selectedUserName,
+                    userUnit: selectedUserUnit,
+                    jabatan: selectedJabatan
+                });
             }
+
+            modal.modal('hide');
         });
 
         // Remove PIC button (event delegation)
@@ -647,11 +578,54 @@
             validateWorkflowWithBudget(totalBudget);
         });
 
+        // Initialize UI state for empty/non-empty workflow
+        function updateWorkflowDisplay() {
+            // Check if there are any rows beyond the creator
+            const hasAdditionalEntries = $("#pic-table-body tr.pic-entry").length > 1;
+
+            if (hasAdditionalEntries) {
+                $("#empty-workflow-message").addClass('d-none');
+            } else {
+                // Only show empty message if there's just the creator row
+                $("#empty-workflow-message").removeClass('d-none');
+            }
+
+            // Table is always visible since we have at least the creator row
+        }
+
+        // Remove PIC button (event delegation)
+        $(document).on('click', '.remove-pic', function() {
+            const row = $(this).closest('tr.pic-entry');
+            const picRole = row.data('role');
+
+            if (picRole === 'Reviewer-Maker') {
+                // If removing a maker, also remove any paired approver
+                const relatedApprovers = $('tr.pic-entry[data-paired="true"]');
+                relatedApprovers.remove();
+            } else if (picRole === 'Reviewer-Approver' && row.data('paired')) {
+                // If removing a paired approver, also remove the maker
+                // Find makers in the table
+                const relatedMakers = $('tr.pic-entry[data-role="Reviewer-Maker"]');
+                relatedMakers.remove();
+            }
+
+            // Remove the clicked row
+            row.remove();
+
+            // Update display (show empty message if needed)
+            updateWorkflowDisplay();
+
+            // Revalidate workflow
+            validateWorkflowWithBudget(totalBudget);
+        });
+
         // Initialize the budget value for validation
         totalBudget = parseInt($('#total_nilai').val() || 0);
 
         // Run initial validation
         validateWorkflowWithBudget(totalBudget);
-    }
 
+        // Initialize empty state
+        updateWorkflowDisplay();
+    }
 </script>

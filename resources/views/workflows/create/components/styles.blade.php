@@ -46,76 +46,164 @@
         background-color: #f8f9fa;
     }
 
-    /* PIC row styling */
-    .pic-entry {
-        position: relative;
-        padding: 15px;
-        margin-bottom: 10px;
-        border: 1px solid #eee;
+    /* Workflow styles */
+    .pic-entry td {
+        vertical-align: middle;
+    }
+
+    /* Role badge styles */
+    .role-badge {
+        display: inline-block;
+        padding: 5px 10px;
         border-radius: 4px;
-        transition: all 0.3s;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
     }
 
-    .pic-entry:hover {
-        background-color: #f8f9fa;
+    .role-acknowledger {
+        background-color: #17a2b8;
     }
 
-    /* Reviewer group styling */
+    .role-head {
+        background-color: #6610f2;
+    }
+
+    .role-reviewer-maker {
+        background-color: #fd7e14;
+    }
+
+    .role-reviewer-approver {
+        background-color: #20c997;
+    }
+
+    .role-creator {
+        background-color: #28a745;
+    }
+
     .reviewer-group {
-        background-color: #f0f7ff;
-        border-left: 3px solid #0d6efd;
-        padding: 10px;
-        margin: 10px 0;
-        border-radius: 0 4px 4px 0;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     .reviewer-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eaeaea;
     }
 
     .reviewer-badge {
-        background-color: #0d6efd;
+        background-color: #6c757d;
         color: white;
+        font-size: 11px;
         padding: 3px 8px;
-        border-radius: 12px;
-        font-size: 0.8rem;
+        border-radius: 4px;
     }
 
-    /* Role pill badges */
-    .role-badge {
-        display: inline-block;
-        padding: 3px 12px;
-        border-radius: 15px;
-        font-size: 0.85rem;
+    /* Modal specific styles */
+    #pic-modal .modal-body {
+        max-height: 65vh;
+        overflow-y: auto;
+    }
+
+    #pic-modal hr {
+        margin: 20px 0;
+        border-color: #eaeaea;
+    }
+
+    #role-select {
         font-weight: 500;
-        margin-right: 5px;
     }
 
-    .role-creator {
-        background-color: #e3f2fd;
-        color: #0d47a1;
+    /* Transitions for showing/hiding sections */
+    #user-selection-container,
+    #reviewer-approver-section {
+        transition: all 0.3s ease;
     }
 
-    .role-acknowledger {
-        background-color: #e8f5e9;
-        color: #1b5e20;
+    /* Status indicators for selections */
+    .selection-complete {
+        color: #28a745;
     }
 
-    .role-head {
-        background-color: #fff3e0;
-        color: #e65100;
+    .selection-pending {
+        color: #dc3545;
     }
 
-    .role-reviewer-maker {
-        background-color: #f3e5f5;
-        color: #6a1b9a;
+    /* Button styles */
+    #save-pic-btn {
+        transition: opacity 0.3s ease;
     }
 
-    .role-reviewer-approver {
-        background-color: #ffebee;
-        color: #b71c1c;
+    #save-pic-btn.disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    /* Table styles */
+    #pic-container table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    #pic-container table thead th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    #pic-container table tbody tr.pic-entry {
+        transition: background-color 0.2s ease;
+    }
+
+    #pic-container table tbody tr.pic-entry:hover {
+        background-color: #f8f9fa;
+    }
+
+    #pic-container table tbody tr[data-role="Creator"] {
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+
+    #pic-container table tbody tr.reviewer-approver-row {
+        background-color: rgba(32, 201, 151, 0.05);
+    }
+
+    #pic-container table textarea.form-control-sm {
+        min-height: 60px;
+        resize: vertical;
+    }
+
+    #pic-container table .form-control-sm {
+        font-size: 0.875rem;
+    }
+
+    /* Empty state styling */
+    #empty-workflow-message {
+        border: 2px dashed #dee2e6;
+        border-radius: 6px;
+        color: #6c757d;
+    }
+
+    #empty-workflow-message i {
+        opacity: 0.6;
+    }
+
+    /* Responsive table adjustments */
+    @media (max-width: 768px) {
+        #pic-container table {
+            font-size: 0.85rem;
+        }
+
+        #pic-container .role-badge {
+            font-size: 10px;
+            padding: 3px 6px;
+        }
     }
 </style>

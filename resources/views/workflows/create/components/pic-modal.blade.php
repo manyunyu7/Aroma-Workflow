@@ -1,3 +1,4 @@
+<!-- Refactored Modal without steps -->
 <div class="modal fade" id="pic-modal" tabindex="-1" aria-labelledby="picModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -8,29 +9,21 @@
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Step 1: Select Role -->
-                <div id="step-1" class="step-container">
-                    <div class="form-group">
-                        <label>Select Role</label>
-                        <select id="role-select" class="form-control">
-                            <option value="">-- Select Role --</option>
-                            <!-- Options will be populated via JavaScript -->
-                        </select>
-                        <small class="form-text text-muted">The role determines the approval level in the
-                            workflow</small>
-                    </div>
-
-                    <div id="reviewer-approver-section" class="mt-3 d-none">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            When selecting a Reviewer-Maker, you'll also need to select a corresponding
-                            Reviewer-Approver.
-                        </div>
-                    </div>
+                <!-- Consolidated Form -->
+                <div class="form-group">
+                    <label>Select Role</label>
+                    <select id="role-select" class="form-control">
+                        <option value="">-- Select Role --</option>
+                        <!-- Options will be populated via JavaScript -->
+                    </select>
+                    <small class="form-text text-muted">The role determines the approval level in the workflow</small>
                 </div>
 
-                <!-- Step 2: Select User -->
-                <div id="step-2" class="step-container d-none">
+                <!-- User Selection Section - Shown when role is selected -->
+                <div id="user-selection-container" class="mt-4 d-none">
+                    <hr>
+                    <h5 class="mb-3">Select Approver</h5>
+
                     <div class="form-group">
                         <label>Select Unit Kerja</label>
                         <select id="unit-kerja-select" class="form-control" style="width: 100%;">
@@ -52,8 +45,9 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Reviewer-Approver (conditionally shown) -->
-                <div id="step-3" class="step-container d-none">
+                <!-- Reviewer-Approver Section - Only shown when Reviewer-Maker is selected -->
+                <div id="reviewer-approver-section" class="mt-4 d-none">
+                    <hr>
                     <h5 class="mb-3">Select Reviewer-Approver</h5>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle mr-2"></i>
@@ -83,8 +77,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" id="step-back-btn" class="btn btn-outline-primary d-none">Back</button>
-                <button type="button" id="step-next-btn" class="btn btn-primary">Next</button>
                 <button type="button" id="save-pic-btn" class="btn btn-success d-none">Add to Workflow</button>
             </div>
         </div>

@@ -261,7 +261,7 @@ class WorkflowController extends Controller
             return $compact;
         }
 
-        return view('workflows.create', $compact);
+        return view('workflows.create.create', $compact);
     }
 
     public function fetchJabatan(Request $request)

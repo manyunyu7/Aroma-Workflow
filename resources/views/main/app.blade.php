@@ -148,6 +148,9 @@
 
     @yield('app-script')
 
+    @stack('scripts')
+
+
     <script>
         // document.body.style.zoom = 0.8
     </script>

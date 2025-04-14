@@ -41,8 +41,8 @@
                     <!-- Document Upload Section -->
                     <div class="col-12">
                         <div class="form-group">
-                            <label>Documents (PDF, DOC, XLS, Images)</label>
-                            @include('workflows.create.document-upload')
+                            <label>Documents (PDF)</label>
+                            @include('workflows.create.components.document-upload-component')
                         </div>
                     </div>
 

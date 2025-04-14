@@ -147,7 +147,7 @@ class WorkflowController extends Controller
         }
         // If last role is acknowledger or unit head, next must be reviewer-maker
         elseif ($lastRole == 'Acknowledger' || $lastRole == 'Unit Head - Approver') {
-            $availableRoles = ['Reviewer-Maker'];
+            $availableRoles = ['Reviewer-Maker','Unit Head - Approver'];
             Log::info('Last role was "' . $lastRole . '". Available roles: ' . implode(', ', $availableRoles));
         }
         // If last role is reviewer-maker, next must be reviewer-approver

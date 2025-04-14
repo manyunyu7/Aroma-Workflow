@@ -19,48 +19,40 @@
 </style>
 @endpush
 
-<!-- Document Upload Section -->
-<div class="card border-light mb-3">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">Document Attachments</h5>
-    </div>
-    <div class="card-body">
-        <!-- File Selection -->
-        <div class="mb-3">
-            <div class="input-group">
-                <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="singleDocument" accept="application/pdf">
-                    <label class="custom-file-label" for="singleDocument">Choose a file</label>
-                </div>
-                <div class="input-group-append">
-                    <button class="btn btn-primary" type="button" id="addDocumentBtn">
-                        <i class="fas fa-plus"></i> Add
-                    </button>
-                </div>
-            </div>
-            <small class="text-muted">Allowed file types: PDF</small>
+   <!-- File Selection -->
+   <div class="mb-3">
+    <div class="input-group">
+        <div class="custom-file">
+            <input type="file" class="custom-file-input" id="singleDocument" accept="application/pdf">
+            <label class="custom-file-label" for="singleDocument">Choose a file</label>
         </div>
+        <div class="input-group-append">
+            <button class="btn btn-primary" type="button" id="addDocumentBtn">
+                <i class="fas fa-plus"></i> Add
+            </button>
+        </div>
+    </div>
+    <small class="text-muted">Allowed file types: PDF</small>
+</div>
 
-        <!-- Document Table -->
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover">
-                <thead class="thead-light">
-                    <tr>
-                        <th width="5%">#</th>
-                        <th width="20%">File</th>
-                        <th width="20%">Upload Name</th>
-                        <th width="15%">Category</th>
-                        <th width="15%">Uploader</th>
-                        <th width="10%">Size</th>
-                        <th width="15%">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="documentList">
-                    <!-- Documents will be added here dynamically -->
-                </tbody>
-            </table>
-        </div>
-    </div>
+<!-- Document Table -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="thead-light" id="documentTableHeader" style="display: none;">
+            <tr>
+                <th width="5%">#</th>
+                <th width="20%">File</th>
+                <th width="20%">Upload Name</th>
+                <th width="15%">Category</th>
+                <th width="15%">Uploader</th>
+                <th width="10%">Size</th>
+                <th width="15%">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="documentList">
+            <!-- Documents will be added here dynamically -->
+        </tbody>
+    </table>
 </div>
 
 <!-- File Preview Modal -->
@@ -89,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const singleDocumentInput = document.getElementById('singleDocument');
     const fileLabel = document.querySelector('.custom-file-label');
     const documentList = document.getElementById('documentList');
+    const documentTableHeader = document.getElementById('documentTableHeader');
     const addDocumentBtn = document.getElementById('addDocumentBtn');
     let documentItemsCount = 0;
     let selectedFile = null;
@@ -114,6 +107,12 @@ document.addEventListener('DOMContentLoaded', function() {
         };
 
         return iconMap[extension.toLowerCase()] || 'fa-file';
+    }
+
+    // Update table header visibility
+    function updateTableHeaderVisibility() {
+        const hasRows = documentList.querySelectorAll('tr').length > 0;
+        documentTableHeader.style.display = hasRows ? '' : 'none';
     }
 
     // Update sequence numbers after reordering
@@ -254,6 +253,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         documentList.appendChild(row);
 
+        // Show table header when we add the first row
+        updateTableHeaderVisibility();
+
         // Get the hidden file input and set its files
         const fileInput = row.querySelector('.document-file-input');
 
@@ -273,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (confirm('Are you sure you want to remove this file?')) {
                 row.remove();
                 updateSequenceNumbers();
+                updateTableHeaderVisibility();
             }
         });
 
@@ -328,6 +331,9 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please select a file first');
         }
     });
+
+    // Initialize table header visibility on page load
+    updateTableHeaderVisibility();
 });
 </script>
 @endpush

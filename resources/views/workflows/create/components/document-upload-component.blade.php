@@ -42,7 +42,7 @@
             <tr>
                 <th width="5%">#</th>
                 <th width="20%">File</th>
-                <th width="20%">Upload Name</th>
+                <th width="20%">Document Name</th>
                 <th width="15%">Category</th>
                 <th width="15%">Uploader</th>
                 <th width="10%">Size</th>

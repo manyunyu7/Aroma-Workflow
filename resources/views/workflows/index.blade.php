@@ -175,8 +175,8 @@
                                     @php
                                         $creators = $workflow->approvals->whereIn('role', [
                                             'CREATOR',
-                                            'Acknowledger',
-                                            'Unit Head - Approver',
+                                            'ACKNOWLEDGED_BY_SPV',
+                                            'APPROVED_BY_HEAD_UNIT',
                                         ]);
                                     @endphp
                                     @foreach ($creators as $approval)
@@ -184,25 +184,36 @@
                                             $user = \App\Models\User::find($approval->user_id);
                                             $isApproved = $approval->status === 'APPROVED';
                                             $role = $approval->role;
+
+                                            // Map DB role codes to display names
+                                            $roleDisplayMap = [
+                                                'CREATOR' => 'Creator',
+                                                'ACKNOWLEDGED_BY_SPV' => 'Acknowledger',
+                                                'APPROVED_BY_HEAD_UNIT' => 'Unit Head',
+                                            ];
+
+                                            $displayRole =
+                                                $roleDisplayMap[$role] ??
+                                                ucfirst(strtolower(str_replace('_', ' ', $role)));
                                         @endphp
                                         <span class="approval-name"
-                                            title="{{ ucfirst($role) }}">{{ $user ? $user->name : 'Unknown' }}</span>
+                                            title="{{ $displayRole }}">{{ $user ? $user->name : 'Unknown' }}</span>
                                         <span
                                             class="badge
-                          @switch($role)
-                              @case('CREATOR')
-                                  badge-primary
-                                  @break
-                              @case('Acknowledger')
-                                  badge-warning
-                                  @break
-                              @case('Unit Head - Approver')
-                                  badge-success
-                                  @break
-                              @default
-                                  badge-secondary
-                          @endswitch">
-                                            {{ ucfirst($role) }}
+                                      @switch($role)
+                                          @case('CREATOR')
+                                              badge-primary
+                                              @break
+                                          @case('ACKNOWLEDGED_BY_SPV')
+                                              badge-warning
+                                              @break
+                                          @case('APPROVED_BY_HEAD_UNIT')
+                                              badge-success
+                                              @break
+                                          @default
+                                              badge-secondary
+                                      @endswitch">
+                                            {{ $displayRole }}
                                         </span>
                                         @if ($isApproved)
                                             <i class="fas fa-check-circle approval-check"></i><br>
@@ -210,29 +221,20 @@
                                     @endforeach
                                 </td>
 
-                                <!-- Disetujui Column (Acknowledger and Unit Head) -->
+                                <!-- Disetujui Column (Reviewer-Approver) -->
                                 <td>
                                     @php
-                                        $approvers = $workflow->approvals->whereIn('role', ['Reviewer-Approver']);
+                                        $approvers = $workflow->approvals->where('role', 'REVIEWED_BY_APPROVER');
                                     @endphp
                                     @foreach ($approvers as $approval)
                                         @php
                                             $user = \App\Models\User::find($approval->user_id);
                                             $isApproved = $approval->status === 'APPROVED';
-                                            $role = $approval->role;
                                         @endphp
                                         <span class="approval-name"
-                                            title="{{ ucfirst($role) }}">{{ $user ? $user->name : 'Unknown' }}</span>
-                                        <span
-                                            class="badge
-                          @switch($role)
-                              @case('Reviewer-Approver')
-                                  badge-info
-                                  @break
-                              @default
-                                  badge-secondary
-                          @endswitch">
-                                            {{ ucfirst($role) }}
+                                            title="Reviewer-Approver">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <span class="badge badge-info">
+                                            Reviewer-Approver
                                         </span>
                                         @if ($isApproved)
                                             <i class="fas fa-check-circle approval-check"></i><br>
@@ -240,29 +242,20 @@
                                     @endforeach
                                 </td>
 
-                                <!-- Reviewer Column -->
+                                <!-- Reviewer Column (Reviewer-Maker) -->
                                 <td>
                                     @php
-                                        $reviewers = $workflow->approvals->whereIn('role', ['Reviewer-Maker']);
+                                        $reviewers = $workflow->approvals->where('role', 'REVIEWED_BY_MAKER');
                                     @endphp
                                     @foreach ($reviewers as $approval)
                                         @php
                                             $user = \App\Models\User::find($approval->user_id);
                                             $isApproved = $approval->status === 'APPROVED';
-                                            $role = $approval->role;
                                         @endphp
                                         <span class="approval-name"
-                                            title="{{ ucfirst($role) }}">{{ $user ? $user->name : 'Unknown' }}</span>
-                                        <span
-                                            class="badge
-                          @switch($role)
-                              @case('Reviewer-Maker')
-                                  badge-danger
-                                  @break
-                              @default
-                                  badge-secondary
-                          @endswitch">
-                                            {{ ucfirst($role) }}
+                                            title="Reviewer-Maker">{{ $user ? $user->name : 'Unknown' }}</span>
+                                        <span class="badge badge-danger">
+                                            Reviewer-Maker
                                         </span>
                                         @if ($isApproved)
                                             <i class="fas fa-check-circle approval-check"></i><br>
@@ -279,6 +272,7 @@
                                         if ($workflow->status === 'WAITING_APPROVAL') {
                                             $pendingApproval = $workflow->approvals
                                                 ->where('status', 'PENDING')
+                                                ->where('is_active', 1)
                                                 ->first();
                                             if ($pendingApproval) {
                                                 $pendingApprovalUser = \App\Models\User::find(
@@ -361,10 +355,6 @@
                                 <td colspan="11" class="text-center">Tidak ada data workflow.</td>
                             </tr>
                         @endforelse
-
-
-
-
                     </tbody>
                 </table>
             </div>

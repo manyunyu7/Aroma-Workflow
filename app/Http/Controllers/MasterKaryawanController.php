@@ -9,14 +9,29 @@ use Illuminate\Http\Request;
 class MasterKaryawanController extends Controller
 {
 
-    public function getAllUsers(Request $request){
-        // return all users and their roles
-        $users = \App\Models\User::with('roles')->get();
+    public function getAllUsers(Request $request)
+    {
+        // Initialize query builder for users with roles
+        $usersQuery = \App\Models\User::with('roles');
 
-        if($request->grouped_by_role == true){
+        // If unit_kerja is provided, filter by unit_kerja using LIKE for partial matching
+        if ($request->unit_kerja != null) {
+            $usersQuery->where('unit_kerja', 'LIKE', '%' . $request->unit_kerja . '%');
+        }
+
+        // If search is provided, filter by name using LIKE for partial matching
+        if ($request->search != null) {
+            $usersQuery->where('name', 'LIKE', '%' . $request->search . '%');
+        }
+
+        // Get the filtered users
+        $users = $usersQuery->get();
+
+        // If 'grouped_by_role' is true, group users by their roles
+        if ($request->grouped_by_role == true) {
             $groupedUsers = [];
-            foreach($users as $user){
-                foreach($user->roles as $role){
+            foreach ($users as $user) {
+                foreach ($user->roles as $role) {
                     $groupedUsers[$role->name][] = $user;
                 }
             }
@@ -26,13 +41,15 @@ class MasterKaryawanController extends Controller
                 'data' => $groupedUsers,
             ]);
         }
-        // return all users without grouping
+
+        // Return all users without grouping
         return response()->json([
             'state' => 'success',
             'code' => 200,
             'data' => $users,
         ]);
     }
+
 
     public function detailKaryawan(Request $request)
     {

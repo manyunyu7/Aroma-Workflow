@@ -553,7 +553,7 @@
                 `;
                 } else if (selectedRole === 'Unit Head - Approver') {
                     roleDescription = `
-                <div id="role-description-info" class="alert alert-primary mb-3">
+                <div id="role-description-info" class="alert alert-primary mb-3  mt-3">
                     <i class="fas fa-info-circle mr-2"></i>
                     <strong>About the Unit Head - Approver Role:</strong>
                     <ul class="mb-0 mt-1">
@@ -566,7 +566,7 @@
             `;
                 } else if (selectedRole === 'Reviewer-Maker') {
                     roleDescription = `
-                <div id="role-description-info" class="alert alert-primary mb-3">
+                <div id="role-description-info" class="alert alert-primary mb-3 mt-3">
                     <i class="fas fa-info-circle mr-2"></i>
                     <strong>About the Reviewer-Maker Role:</strong>
                     <ul class="mb-0 mt-1">

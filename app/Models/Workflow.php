@@ -20,6 +20,7 @@ class Workflow extends Model
         'total_nilai',
         'deskripsi_kegiatan',
         'cost_center',
+        'cost_center_account',
         'waktu_penggunaan',
         'account',
         'justification_form',

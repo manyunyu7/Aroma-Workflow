@@ -51,9 +51,17 @@ Route::get('hehe', [MasterKaryawanController::class, 'getAllKaryawan']);
 Route::get('hihi', [MasterKaryawanController::class, 'detailKaryawan']);
 Route::get('wkwk', [MasterKaryawanController::class, 'getAllUsers']);
 
+Route::get('/api/coa/cost-center-account-list',[WorkflowController::class, 'getCostCenterAccountList']);
+
+Route::get('get-approval-matrix', [WorkflowController::class, 'getApprovalMatrix'])
+    ->name('get.approval.matrix');
+
 // Define your workflow action routes
 Route::get('workflow-actions/find-users', [WorkflowController::class, 'findUsers'])
     ->name('workflows.find-users');
+
+    // Add this to your routes/web.php file in the appropriate section
+Route::post('workflows-actions/get-cost-center-accounts', [WorkflowController::class, 'getCostCenterAccounts'])->name('workflows.get-cost-center-accounts');
 
 Route::get('workflow-actions/fetch-jabatan', [WorkflowController::class, 'fetchJabatan'])
     ->name('workflows.fetch-jabatan');

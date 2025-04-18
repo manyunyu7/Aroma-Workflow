@@ -22,6 +22,25 @@ class ApprovalMatrix extends Model
         'edited_by'
     ];
 
+    /**
+     * Get the appropriate matrix for a given budget amount
+     *
+     * @param float $budget
+     * @return self|null
+     */
+    public static function getMatrixForBudget($budget)
+    {
+        return self::where('status', 'Active')
+            ->where('min_budget', '<=', $budget)
+            ->where(function ($query) use ($budget) {
+                $query->where('max_budget', '>=', $budget)
+                    ->orWhereNull('max_budget');
+            })
+            ->first();
+    }
+
+
+
     // Accessors & Mutators
     public function setApproversAttribute($value)
     {
@@ -33,7 +52,7 @@ class ApprovalMatrix extends Model
         return json_decode($value, true) ?? [];
     }
 
-       /**
+    /**
      * Get the user who created this approval matrix
      */
     public function creator()

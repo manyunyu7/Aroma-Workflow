@@ -186,46 +186,114 @@
 
                         @if ($workflowDocuments->isNotEmpty())
                             <div class="document-list">
-                                @foreach ($workflowDocuments as $document)
-                                    <div class="document-item">
-                                        <div>
-                                            @php
-                                                $extension = strtolower($document->file_type);
-                                                $icon = 'fa-file';
+                                @php
+                                    // Sort documents: MAIN category first, then by sequence
+                                    $sortedDocuments = $workflowDocuments->sortBy(function ($doc) {
+                                        // Primary sort: MAIN comes before others
+                                        $categorySort = $doc->document_category === 'MAIN' ? 0 : 1;
+                                        // Secondary sort: by sequence
+                                        return [$categorySort, $doc->sequence];
+                                    });
 
-                                                if (in_array($extension, ['pdf'])) {
-                                                    $icon = 'fa-file-pdf';
-                                                } elseif (in_array($extension, ['doc', 'docx'])) {
-                                                    $icon = 'fa-file-word';
-                                                } elseif (in_array($extension, ['xls', 'xlsx'])) {
-                                                    $icon = 'fa-file-excel';
-                                                } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                                                    $icon = 'fa-file-image';
-                                                }
-                                            @endphp
+                                    // Group documents by category for display
+                                    $documentsByCategory = $sortedDocuments->groupBy('document_category');
+                                @endphp
 
-                                            <i class="fas {{ $icon }} mr-2"></i>
-                                            <span>{{ $document->file_name }}</span>
-                                            <small class="text-muted ml-2">({{ $document->file_type }})</small>
+                                {{-- Display documents by category --}}
+                                @foreach (['MAIN', 'SUPPORTING'] as $category)
+                                    @if (isset($documentsByCategory[$category]) && $documentsByCategory[$category]->count() > 0)
+                                        <h5 class="mt-3">{{ ucfirst(strtolower($category)) }} Documents</h5>
+                                        @foreach ($documentsByCategory[$category] as $document)
+                                            <div class="document-item">
+                                                <div>
+                                                    @php
+                                                        $extension = strtolower($document->file_type);
+                                                        $icon = 'fa-file';
 
-                                            @if ($document->uploaded_by)
-                                                @php
-                                                    $uploader = \App\Models\User::find($document->uploaded_by);
-                                                @endphp
-                                                <br>
-                                                <small class="text-muted">
-                                                    Uploaded by: {{ $uploader ? $uploader->name : 'Unknown' }}
-                                                    on {{ $document->created_at->format('d M Y H:i') }}
-                                                </small>
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info"
-                                                target="_blank">
-                                                <i class="fas fa-eye"></i> View
-                                            </a>
-                                        </div>
-                                    </div>
+                                                        if (in_array($extension, ['pdf'])) {
+                                                            $icon = 'fa-file-pdf';
+                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                            $icon = 'fa-file-word';
+                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                            $icon = 'fa-file-excel';
+                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                                                            $icon = 'fa-file-image';
+                                                        }
+                                                    @endphp
+
+                                                    <i class="fas {{ $icon }} mr-2"></i>
+                                                    <span>{{ $document->file_name }}</span>
+                                                    <small class="text-muted ml-2">({{ $document->file_type }})</small>
+
+                                                    @if ($document->uploaded_by)
+                                                        @php
+                                                            $uploader = \App\Models\User::find($document->uploaded_by);
+                                                        @endphp
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            Uploaded by: {{ $uploader ? $uploader->name : 'Unknown' }}
+                                                            on {{ $document->created_at->format('d M Y H:i') }}
+                                                        </small>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info"
+                                                        target="_blank">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                @endforeach
+
+                                {{-- Display any remaining documents with other categories --}}
+                                @foreach ($documentsByCategory as $category => $docs)
+                                    @if (!in_array($category, ['MAIN', 'SUPPORTING']) && $docs->count() > 0)
+                                        <h5 class="mt-3">{{ ucfirst(strtolower($category)) }} Documents</h5>
+                                        @foreach ($docs as $document)
+                                            <div class="document-item">
+                                                {{-- Same document display code --}}
+                                                <div>
+                                                    @php
+                                                        $extension = strtolower($document->file_type);
+                                                        $icon = 'fa-file';
+
+                                                        if (in_array($extension, ['pdf'])) {
+                                                            $icon = 'fa-file-pdf';
+                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                            $icon = 'fa-file-word';
+                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                            $icon = 'fa-file-excel';
+                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                                                            $icon = 'fa-file-image';
+                                                        }
+                                                    @endphp
+
+                                                    <i class="fas {{ $icon }} mr-2"></i>
+                                                    <span>{{ $document->file_name }}</span>
+                                                    <small class="text-muted ml-2">({{ $document->file_type }})</small>
+
+                                                    @if ($document->uploaded_by)
+                                                        @php
+                                                            $uploader = \App\Models\User::find($document->uploaded_by);
+                                                        @endphp
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            Uploaded by: {{ $uploader ? $uploader->name : 'Unknown' }}
+                                                            on {{ $document->created_at->format('d M Y H:i') }}
+                                                        </small>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info"
+                                                        target="_blank">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @endif
                                 @endforeach
                             </div>
                         @else
@@ -239,8 +307,8 @@
                             <h5>Approval Action</h5>
                             <hr>
 
-                            <form action="{{ route('workflows.approve', $workflow->id) }}" method="post" id="approvalForm"
-                                enctype="multipart/form-data">
+                            <form action="{{ route('workflows.approve', $workflow->id) }}" method="post"
+                                id="approvalForm" enctype="multipart/form-data">
                                 @csrf
 
                                 <div class="form-group">

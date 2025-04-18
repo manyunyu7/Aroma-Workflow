@@ -14,7 +14,32 @@
     $nik = getAuthNik() ?? null;
     $employeeDetails = getDetailNaker($nik);
     $costCenter = $employeeDetails['cost_center_name']['nama_cost_center'] ?? '';
+    $costCenterId = $employeeDetails['cost_center_id'] ?? '';
     $unitKerja = $employeeDetails['unit'] ?? '';
+
+    // Fetch cost center list from API
+    $costCenterUrl = "http://10.204.222.12/backend-fista/costcenter/getlist";
+    $costCenterResponse = Http::get($costCenterUrl);
+    $costCenterData = $costCenterResponse->json()['data'] ?? [];
+
+    // Check if user's costCenterId exists in API data
+    $costCenterExists = false;
+    $unitCcId = null;
+    foreach ($costCenterData as $cc) {
+        if ($cc['cc_id'] == $costCenterId) {
+            $costCenterExists = true;
+            $unitCcId = $cc['unit_cc_id'];
+            break;
+        }
+    }
+
+    // If cost center exists, fetch account list
+    $accountList = [];
+    if ($costCenterExists && $unitCcId) {
+        $accountUrl = url("/api/coa/cost-center-account-list?unit_cc_id={$unitCcId}");
+        $accountResponse = Http::get($accountUrl);
+        $accountList = $accountResponse->json() ?? [];
+    }
 @endphp
 
 <div class="form-group">
@@ -25,9 +50,28 @@
 
 <div class="form-group">
     <label for="cost_center">Cost Center</label>
-    <input type="text" class="form-control" id="cost_center" value="{{ $costCenter }}"
-        readonly>
-    <input type="hidden" name="cost_center" value="{{ $costCenter }}">
+    @if ($costCenterExists)
+        <input type="text" class="form-control" id="cost_center" value="{{ $costCenter }}" readonly>
+        <input type="hidden" name="cost_center" value="{{ $costCenter }}">
+        <input type="hidden" name="cost_center_id" value="{{ $costCenterId }}">
+        <input type="hidden" name="unit_cc_id" value="{{ $unitCcId }}">
+    @else
+        <select class="form-control select2" id="cost_center_select" name="cost_center" required>
+            <option value="">-- Pilih Cost Center --</option>
+            @foreach ($costCenterData as $cc)
+                <option value="{{ $cc['cc_name'] }}"
+                    data-cc-id="{{ $cc['cc_id'] }}"
+                    data-unit-cc-id="{{ $cc['unit_cc_id'] }}">
+                    {{ $cc['cc_name'] }} ({{ $cc['cc_id'] }})
+                </option>
+            @endforeach
+        </select>
+        <input type="hidden" name="cost_center_id" id="cost_center_id">
+        <input type="hidden" name="unit_cc_id" id="unit_cc_id">
+        <div class="alert alert-warning mt-2">
+            <small>Perhatian: Cost Center ID Anda tidak ditemukan. Silakan pilih Cost Center secara manual.</small>
+        </div>
+    @endif
 </div>
 
 <div class="form-group">
@@ -67,32 +111,86 @@
 </div>
 
 <div class="form-group">
-    <label for="account">Account (Chart of Accounts)</label>
-    <select class="form-control select2" id="account" name="account" required>
-        <option value="">-- Select Account --</option>
-        <optgroup label="Assets">
-            <option value="1001" {{ old('account') == '1001' ? 'selected' : '' }}>1001 - Cash &
-                Bank</option>
-            <option value="1002" {{ old('account') == '1002' ? 'selected' : '' }}>1002 - Accounts
-                Receivable</option>
-        </optgroup>
-        <optgroup label="Liabilities">
-            <option value="2001" {{ old('account') == '2001' ? 'selected' : '' }}>2001 - Accounts
-                Payable</option>
-            <option value="2002" {{ old('account') == '2002' ? 'selected' : '' }}>2002 - Bank
-                Loans</option>
-        </optgroup>
-        <optgroup label="Revenue">
-            <option value="3001" {{ old('account') == '3001' ? 'selected' : '' }}>3001 -
-                Broadband Services Revenue</option>
-            <option value="3002" {{ old('account') == '3002' ? 'selected' : '' }}>3002 -
-                Enterprise Solutions Revenue</option>
-        </optgroup>
-        <optgroup label="Expenses">
-            <option value="5001" {{ old('account') == '5001' ? 'selected' : '' }}>5001 - Network
-                Maintenance</option>
-            <option value="5002" {{ old('account') == '5002' ? 'selected' : '' }}>5002 -
-                Marketing & Sales</option>
-        </optgroup>
-    </select>
+    <label for="account">Account (Chart of Accounts)</label><br>
+    @if ($costCenterExists && !empty($accountList))
+        <select class="form-control select2" id="account" name="account" required>
+            <option value="">-- Select Account --</option>
+            @foreach ($accountList as $account)
+                <option value="{{ $account['account_id'] }}" {{ old('account') == $account['account_id'] ? 'selected' : '' }}>
+                    {{ $account['account_id'] }} - {{ $account['account_name'] }}
+                </option>
+            @endforeach
+        </select>
+    @elseif(!$costCenterExists)
+        <select class="form-control select2" id="account" name="account" required disabled>
+            <option value="">-- Pilih Cost Center terlebih dahulu --</option>
+        </select>
+    @else
+        <select class="form-control select2" id="account" name="account" required>
+            <option value="">-- No accounts available --</option>
+        </select>
+    @endif
 </div>
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        // Format currency input
+        $('#total_nilai_display').on('input', function() {
+            // Remove non-numeric characters
+            var value = $(this).val().replace(/[^\d]/g, '');
+            // Format with thousand separator
+            var formattedValue = new Intl.NumberFormat('id-ID').format(value);
+            $(this).val(formattedValue);
+            // Store raw value in hidden input
+            $('#total_nilai').val(value);
+        });
+
+        @if (!$costCenterExists)
+        // Handle cost center selection
+        $('#cost_center_select').on('change', function() {
+            var selectedOption = $(this).find('option:selected');
+            var unitCcId = selectedOption.data('unit-cc-id');
+            var ccId = selectedOption.data('cc-id');
+
+            $('#cost_center_id').val(ccId);
+            $('#unit_cc_id').val(unitCcId);
+
+            // Fetch accounts based on selected cost center
+            if (unitCcId) {
+                $.ajax({
+                    url: '/api/coa/cost-center-account-list',
+                    type: 'GET',
+                    data: { unit_cc_id: unitCcId },
+                    dataType: 'json',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        var accountSelect = $('#account');
+                        accountSelect.empty();
+                        accountSelect.append('<option value="">-- Select Account --</option>');
+
+                        if (response && response.length > 0) {
+                            $.each(response, function(index, account) {
+                                accountSelect.append('<option value="' + account.account_id + '">' +
+                                    account.account_id + ' - ' + account.account_name + '</option>');
+                            });
+                            accountSelect.prop('disabled', false);
+                        } else {
+                            accountSelect.append('<option value="">No accounts available</option>');
+                            accountSelect.prop('disabled', true);
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to fetch account list. Please try again.');
+                    }
+                });
+            } else {
+                $('#account').empty().append('<option value="">-- Pilih Cost Center terlebih dahulu --</option>').prop('disabled', true);
+            }
+        });
+        @endif
+    });
+</script>
+@endpush

@@ -49,10 +49,15 @@
                     <hr>
 
 
-                    <div class="col-12">
+                    <div class="col-12 d-none">
                         <!-- Approval PIC Section -->
                         <h5>Approval PICs</h5>
                         <p class="text-muted mb-3">Set up the approval workflow for this justification form</p>
+
+                        <div class="alert alert-info" id="budget-category-alert">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Please enter a budget amount to see applicable approval flow.
+                        </div>
 
                         <div class="alert alert-info" id="budget-info-alert">
                             <i class="fas fa-info-circle mr-2"></i>
@@ -111,6 +116,7 @@
 
     <!-- Include component scripts -->
     @include('workflows.create.scripts.currency-formatter')
+    @include('workflows.create.scripts.main-script')
     @include('workflows.create.scripts.workflow-components')
     @include('workflows.create.scripts.document-handling')
 @endsection

@@ -12,7 +12,7 @@
                 </li> --}}
                 {{-- <li class="list-divider"></li> --}}
 
-                @if (in_array('Creator', getAuthRole()) || in_array('Admin', getAuthRole()))
+                {{-- @if (in_array('Creator', getAuthRole()) || in_array('Admin', getAuthRole())) --}}
                     <li class="nav-small-cap"><span class="hide-menu">Workflow Management</span></li>
 
                     <li class="sidebar-item">
@@ -28,7 +28,7 @@
                             <span class="hide-menu">Buat Pengajuan</span>
                         </a>
                     </li>
-                @endif
+                {{-- @endif --}}
 
                 @if (in_array('Admin', getAuthRole()))
                     <li class="nav-small-cap"><span class="hide-menu">Anggaran</span></li>

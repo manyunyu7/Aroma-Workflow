@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalMatrix;
 use App\Models\JenisAnggaran;
 use App\Models\User;
 use App\Models\UserRole;
@@ -16,6 +17,50 @@ use Illuminate\Validation\Rule;
 
 class WorkflowController extends Controller
 {
+
+
+    public function getApprovalMatrix(Request $request)
+    {
+        $budget = $request->budget;
+
+        // Find the appropriate approval matrix based on budget amount
+        $matrix = ApprovalMatrix::where('status', 'Active')
+            ->where('min_budget', '<=', $budget)
+            ->where(function ($query) use ($budget) {
+                $query->where('max_budget', '>=', $budget)
+                    ->orWhereNull('max_budget');
+            })
+            ->first();
+
+        if ($matrix) {
+            return response()->json([
+                'success' => true,
+                'matrix' => $matrix
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'No approval matrix found for this budget amount.'
+        ]);
+    }
+
+    /**
+     * Get accounts for a specific cost center
+     */
+    public function getCostCenterAccountList(Request $request)
+    {
+        $unitCcId = $request->input('unit_cc_id');
+
+        if (!$unitCcId) {
+            return response()->json(['error' => 'Unit cost center ID is required'], 400);
+        }
+
+        // Use the service to get accounts
+        $accounts = getCostCenterAccounts($unitCcId);
+
+        return response()->json($accounts);
+    }
 
     /**
      * Get all unique unit kerja with employee count
@@ -61,27 +106,34 @@ class WorkflowController extends Controller
 
         // Add role filter if provided
         if ($role) {
-            $query->whereHas('userRoles', function ($q) use ($role, $budget, $userMin) { // IMPORTANT: Added userMin parameter
+            $query->whereHas('userRoles', function ($q) use ($role, $budget) {
+                // Filter by role
                 $q->where('role', $role);
 
-                // Add budget filter if applicable
-                if ($budget > 0) {
-                    // IMPORTANT: These are the key lines that fix the issue
-                    // Exclude users with min_budget of 0 or NULL
-                    $q->where('min_budget', '>', 0)
-                        ->whereNotNull('min_budget');
-
-                    // IMPORTANT: If userMin is specified, also exclude that specific value
-                    if ($userMin) {
-                        $q->where('min_budget', '!=', $userMin);
-                    }
-
-                    // Check max_budget constraint (either >= budget or NULL)
-                    $q->where(function ($innerQuery) use ($budget) {
-                        $innerQuery->where('max_budget', '>=', $budget)
-                            ->orWhereNull('max_budget'); // NULL means no upper limit
-                    });
-                }
+                // Budget range filtering
+                $q->where(function ($budgetQuery) use ($budget) {
+                    $budgetQuery
+                        // Scenario 1: Both min and max are set
+                        ->where(function ($innerQuery) use ($budget) {
+                            $innerQuery->where('min_budget', '<=', $budget)
+                                ->where('max_budget', '>=', $budget)
+                                ->whereNotNull('min_budget')
+                                ->whereNotNull('max_budget');
+                        })
+                        // Scenario 2: Only min is set (and less than or equal to budget)
+                        ->orWhere(function ($innerQuery) use ($budget) {
+                            $innerQuery->where('min_budget', '<=', $budget)
+                                ->whereNull('max_budget');
+                        })
+                        // Scenario 3: Only max is set (and greater than or equal to budget)
+                        ->orWhere(function ($innerQuery) use ($budget) {
+                            $innerQuery->where('max_budget', '>=', $budget)
+                                ->whereNull('min_budget');
+                        })
+                        // Scenario 4: No budget constraints set (NULL on both)
+                        ->orWhereNull('min_budget')
+                        ->orWhereNull('max_budget');
+                });
             });
         }
 
@@ -134,20 +186,27 @@ class WorkflowController extends Controller
         // Default available roles
         $availableRoles = [];
 
-        // If roles is Creator or Acknowledger, can add Unit Head - Approver
-        if (in_array('Creator', $currentRoles) || in_array('Acknowledger', $currentRoles)) {
-            $availableRoles = ['Acknowledger', 'Unit Head - Approver'];
-            Log::info('No roles selected yet. Available roles: ' . implode(', ', $availableRoles));
-        }
-
         // If no roles selected yet, can only choose between acknowledger and unit head
         if (empty($currentRoles)) {
             $availableRoles = ['Acknowledger', 'Unit Head - Approver'];
             Log::info('No roles selected yet. Available roles: ' . implode(', ', $availableRoles));
         }
+
+        // If roles is Creator or can add Unit Head - Approver
+        if (in_array('Creator', $currentRoles)) {
+            $availableRoles = ['Acknowledger', 'Unit Head - Approver'];
+            Log::info('No roles selected yet. Available roles: ' . implode(', ', $availableRoles));
+        }
+
+        // If roles isAcknowledger, can add Unit Head - Approver
+        if (in_array('Acknowledger', $currentRoles)) {
+            $availableRoles = ['Unit Head - Approver'];
+            Log::info('No roles selected yet. Available roles: ' . implode(', ', $availableRoles));
+        }
+
         // If last role is acknowledger or unit head, next must be reviewer-maker
-        elseif ($lastRole == 'Acknowledger' || $lastRole == 'Unit Head - Approver') {
-            $availableRoles = ['Reviewer-Maker','Unit Head - Approver'];
+        elseif ($lastRole == 'Unit Head - Approver') {
+            $availableRoles = ['Reviewer-Maker'];
             Log::info('Last role was "' . $lastRole . '". Available roles: ' . implode(', ', $availableRoles));
         }
         // If last role is reviewer-maker, next must be reviewer-approver
@@ -375,14 +434,14 @@ class WorkflowController extends Controller
 
     public function store(Request $request)
     {
-        dd($request->all());
         // Get valid status codes from your model
         $validStatusCodes = collect(Workflow::getStatuses())->pluck('code')->toArray();
 
         try {
             $validated = $request->validate([
                 'unit_kerja'           => 'required|string',
-                // 'cost_center'          => 'required|string',
+                'cost_center'          => 'required|string',
+                'unit_cc_id'          => 'required|string',
                 'nama_kegiatan'        => 'required|string',
                 'deskripsi_kegiatan'   => 'nullable|string',
                 'jenis_anggaran'       => 'required|string',
@@ -404,29 +463,9 @@ class WorkflowController extends Controller
                 'is_draft'             => 'nullable|boolean',
             ]);
 
-
-
             // Additional validation for budget rules
             $budget = $validated['total_nilai'];
             $picRoles = array_column($request->pics, 'role');
-
-            // Check if budget under 500M has acknowledger and head from same unit_kerja
-            if ($budget < 500000000) {
-                $acknowledgerIndex = array_search('Acknowledger', $picRoles);
-                $headIndex = array_search('Unit Head - Approver', $picRoles);
-
-                if ($acknowledgerIndex !== false && $headIndex !== false) {
-                    $acknowledgerUserId = $request->pics[$acknowledgerIndex]['user_id'];
-                    $headUserId = $request->pics[$headIndex]['user_id'];
-
-                    $acknowledgerUnitKerja = User::find($acknowledgerUserId)->unit_kerja ?? null;
-                    $headUnitKerja = User::find($headUserId)->unit_kerja ?? null;
-
-                    if ($acknowledgerUnitKerja != $headUnitKerja) {
-                        return back()->withErrors(['unit_kerja_mismatch' => 'For budgets under 500,000,000, the acknowledger and unit head must be from the same unit.'])->withInput();
-                    }
-                }
-            }
 
             // Validate workflow has proper sequence of roles
             // First must be creator, then either acknowledger or head, then reviewer-maker and reviewer-approver
@@ -473,6 +512,7 @@ class WorkflowController extends Controller
                 'nomor_pengajuan' => $nomorPengajuan,
                 'unit_kerja' => $validated['unit_kerja'],
                 'cost_center' => $validated['cost_center'],
+                'cost_center_account' => $validated['unit_cc_id'],
                 'creation_date' => $validated['creation_date'],
                 'nama_kegiatan' => $validated['nama_kegiatan'],
                 'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'] ?? null,
@@ -488,27 +528,33 @@ class WorkflowController extends Controller
 
             // Process approvals/PICs
             if ($request->has('pics')) {
-                // Sort PICs by sequence (ensure Creator is first)
-                $pics = collect($request->pics)->sortBy(function ($pic) {
-                    // Define sequence based on role
-                    $roleSequence = [
-                        'Creator' => 1,
-                        'Acknowledger' => 2,
-                        'Unit Head - Approver' => 3
-                    ];
+                // Use PICs in the exact order they came in the request
+                $pics = $request->pics;
 
-                    // For reviewer pairs, we need to maintain their order
-                    if ($pic['role'] == 'Reviewer-Maker' || $pic['role'] == 'Reviewer-Approver') {
-                        // Use original index, but ensure they come after the main roles
-                        return $roleSequence[$pic['role']] ?? 100 + intval($pic['sequence'] ?? 0);
+                // Find the creator index for reference
+                $creatorIndex = null;
+                foreach ($pics as $index => $pic) {
+                    if ($pic['role'] === 'Creator') {
+                        $creatorIndex = $index;
+                        break;
                     }
+                }
 
-                    return $roleSequence[$pic['role']] ?? 999;
-                })->values()->all();
+                // Determine next active person
+                $nextActiveIndex = null;
+                if (!$request->input('is_draft', false) && $creatorIndex !== null) {
+                    // Find the next person after creator in sequence
+                    // We're keeping the original request order
+                    $nextActiveIndex = $creatorIndex + 1;
+                    if ($nextActiveIndex >= count($pics)) {
+                        $nextActiveIndex = null; // No next person if creator is last
+                    }
+                }
 
                 foreach ($pics as $index => $pic) {
                     $isCurrentUser = ($pic['user_id'] == Auth::id());
                     $role = $pic['role'];
+                    $isCreator = ($role === 'Creator');
 
                     // Map role names to role codes for DB storage
                     $roleCodeMap = [
@@ -521,6 +567,26 @@ class WorkflowController extends Controller
 
                     $roleCode = $roleCodeMap[$role] ?? $role;
 
+                    // Determine approval status
+                    $isApproved = false;
+                    if (!$request->input('is_draft', false)) {
+                        if ($isCreator) {
+                            $isApproved = true; // Creator is auto-approved on submission
+                        } else if ($isCurrentUser) {
+                            $isApproved = true; // Current user is auto-approved
+                        }
+                    }
+
+                    // Determine active status
+                    $isActive = false;
+                    if ($request->input('is_draft', false)) {
+                        // In draft mode, only creator is active
+                        $isActive = $isCreator;
+                    } else {
+                        // In submit mode, next person after creator is active
+                        $isActive = ($index === $nextActiveIndex);
+                    }
+
                     // Create the WorkflowApproval record
                     $approval = WorkflowApproval::create([
                         'workflow_id' => $workflow->id,
@@ -528,10 +594,10 @@ class WorkflowController extends Controller
                         'role' => $roleCode,
                         'digital_signature' => $pic['digital_signature'] ?? 0,
                         'notes' => $pic['notes'] ?? null,
-                        'sequence' => $index + 1,
-                        'is_active' => ($index === 0 || $isCurrentUser) ? 1 : 0,
-                        'status' => $isCurrentUser && !$request->input('is_draft', false) ? 'APPROVED' : 'PENDING',
-                        'approved_at' => $isCurrentUser && !$request->input('is_draft', false) ? now() : null,
+                        'sequence' => $index + 1, // Keep original sequence
+                        'is_active' => $isActive ? 1 : 0,
+                        'status' => $isApproved ? 'APPROVED' : 'PENDING',
+                        'approved_at' => $isApproved ? now() : null,
                     ]);
                 }
             }
@@ -592,8 +658,8 @@ class WorkflowController extends Controller
             DB::rollBack();
 
             // Log the error for debugging
-            \Log::error('Workflow creation error: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            Log::error('Workflow creation error: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
 
             return back()
                 ->withErrors(['error' => 'Something went wrong: ' . $e->getMessage()])

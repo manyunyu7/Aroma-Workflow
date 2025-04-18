@@ -31,7 +31,7 @@ class HomeController extends Controller
             $routeRoleMap = [
                 'admin/home' => ['Admin'],
                 'operator/home' => ['Operator'],
-                'user/home' => ['Creator', 'User']
+                'user/home' => ['Creator', 'User','Reviewer-Maker','Reviewer-Approver', 'Unit Head Approver'],
             ];
 
             $redirectRouteMap = [
@@ -59,7 +59,7 @@ class HomeController extends Controller
                 }
             }
 
-            return view('home.index');
+            return redirect('/workflows');
         }
 
         // If no session or authentication, redirect to login

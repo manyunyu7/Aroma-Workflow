@@ -185,117 +185,105 @@
                         @if ($workflowDocuments->isNotEmpty())
                             <div class="document-list">
                                 @php
-                                    // Sort documents: MAIN category first, then by sequence
+                                    // Sort all documents: MAIN category first, then SUPPORTING, then others, then by sequence
                                     $sortedDocuments = $workflowDocuments->sortBy(function ($doc) {
-                                        // Primary sort: MAIN comes before others
-                                        $categorySort = $doc->document_category === 'MAIN' ? 0 : 1;
+                                        // Primary sort by category priority
+                                        if ($doc->document_category === 'MAIN') {
+                                            $categorySort = 0;
+                                        } elseif ($doc->document_category === 'SUPPORTING') {
+                                            $categorySort = 1;
+                                        } else {
+                                            $categorySort = 2;
+                                        }
                                         // Secondary sort: by sequence
                                         return [$categorySort, $doc->sequence];
                                     });
-
-                                    // Group documents by category for display
-                                    $documentsByCategory = $sortedDocuments->groupBy('document_category');
                                 @endphp
 
-                                {{-- Display documents by category --}}
-                                @foreach (['MAIN', 'SUPPORTING'] as $category)
-                                    @if (isset($documentsByCategory[$category]) && $documentsByCategory[$category]->count() > 0)
-                                        <h5 class="mt-3">{{ ucfirst(strtolower($category)) }} Documents</h5>
-                                        @foreach ($documentsByCategory[$category] as $document)
-                                            <div class="document-item">
-                                                <div>
-                                                    @php
-                                                        $extension = strtolower($document->file_type);
-                                                        $icon = 'fa-file';
-
-                                                        if (in_array($extension, ['pdf'])) {
-                                                            $icon = 'fa-file-pdf';
-                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
-                                                            $icon = 'fa-file-word';
-                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
-                                                            $icon = 'fa-file-excel';
-                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                                                            $icon = 'fa-file-image';
-                                                        }
-                                                    @endphp
-
-                                                    <i class="fas {{ $icon }} mr-2"></i>
-                                                    <span>{{ $document->file_name }}</span>
-                                                    <small class="text-muted ml-2">({{ $document->file_type }})</small>
-
-                                                    @if ($document->uploaded_by)
+                                <div class="card shadow-sm mb-4">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-file-alt mr-2"></i>
+                                            Workflow Documents
+                                        </h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="list-group list-group-flush">
+                                            @foreach ($sortedDocuments as $document)
+                                                <div
+                                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3">
+                                                    <div class="d-flex align-items-center">
                                                         @php
-                                                            $uploader = \App\Models\User::find($document->uploaded_by);
+                                                            $extension = strtolower($document->file_type);
+                                                            $icon = 'fa-file';
+                                                            $iconColor = 'text-secondary';
+                                                            $categoryBadgeClass = 'badge-secondary';
+
+                                                            if (in_array($extension, ['pdf'])) {
+                                                                $icon = 'fa-file-pdf';
+                                                                $iconColor = 'text-danger';
+                                                            } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                                $icon = 'fa-file-word';
+                                                                $iconColor = 'text-primary';
+                                                            } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                                $icon = 'fa-file-excel';
+                                                                $iconColor = 'text-success';
+                                                            } elseif (
+                                                                in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])
+                                                            ) {
+                                                                $icon = 'fa-file-image';
+                                                                $iconColor = 'text-info';
+                                                            }
+
+                                                            // Set badge color based on document category
+                                                            if ($document->document_category === 'MAIN') {
+                                                                $categoryBadgeClass = 'badge-primary';
+                                                            } elseif ($document->document_category === 'SUPPORTING') {
+                                                                $categoryBadgeClass = 'badge-info';
+                                                            }
                                                         @endphp
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            Uploaded by: {{ $uploader ? $uploader->name : 'Unknown' }}
-                                                            on {{ $document->created_at->format('d M Y H:i') }}
-                                                        </small>
-                                                    @endif
-                                                </div>
-                                                <div>
-                                                    <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info"
-                                                        target="_blank">
-                                                        <i class="fas fa-eye"></i> View
+
+                                                        <div class="document-icon mr-3">
+                                                            <i
+                                                                class="fas {{ $icon }} {{ $iconColor }} fa-2x"></i>
+                                                        </div>
+                                                        <div>
+                                                            <div class="d-flex align-items-center">
+                                                                <span
+                                                                    class="font-weight-medium">{{ $document->file_name }}</span>
+                                                                <span
+                                                                    class="badge {{ $categoryBadgeClass }} ml-2">{{ $document->document_category }}</span>
+                                                                <span
+                                                                    class="badge badge-light ml-2">{{ strtoupper($document->file_type) }}</span>
+                                                            </div>
+                                                            @if ($document->uploaded_by)
+                                                                @php
+                                                                    $uploader = \App\Models\User::find(
+                                                                        $document->uploaded_by,
+                                                                    );
+                                                                @endphp
+                                                                <small class="text-muted">
+                                                                    Uploaded by:
+                                                                    {{ $uploader ? $uploader->name : 'Unknown' }}
+                                                                    on {{ $document->created_at->format('d M Y H:i') }}
+                                                                </small>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                    <a href="{{ url($document->file_path) }}"
+                                                        class="btn btn-sm btn-outline-primary" target="_blank">
+                                                        <i class="fas fa-eye mr-1"></i> View
                                                     </a>
                                                 </div>
-                                            </div>
-                                        @endforeach
-                                    @endif
-                                @endforeach
-
-                                {{-- Display any remaining documents with other categories --}}
-                                @foreach ($documentsByCategory as $category => $docs)
-                                    @if (!in_array($category, ['MAIN', 'SUPPORTING']) && $docs->count() > 0)
-                                        <h5 class="mt-3">{{ ucfirst(strtolower($category)) }} Documents</h5>
-                                        @foreach ($docs as $document)
-                                            <div class="document-item">
-                                                {{-- Same document display code --}}
-                                                <div>
-                                                    @php
-                                                        $extension = strtolower($document->file_type);
-                                                        $icon = 'fa-file';
-
-                                                        if (in_array($extension, ['pdf'])) {
-                                                            $icon = 'fa-file-pdf';
-                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
-                                                            $icon = 'fa-file-word';
-                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
-                                                            $icon = 'fa-file-excel';
-                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                                                            $icon = 'fa-file-image';
-                                                        }
-                                                    @endphp
-
-                                                    <i class="fas {{ $icon }} mr-2"></i>
-                                                    <span>{{ $document->file_name }}</span>
-                                                    <small class="text-muted ml-2">({{ $document->file_type }})</small>
-
-                                                    @if ($document->uploaded_by)
-                                                        @php
-                                                            $uploader = \App\Models\User::find($document->uploaded_by);
-                                                        @endphp
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            Uploaded by: {{ $uploader ? $uploader->name : 'Unknown' }}
-                                                            on {{ $document->created_at->format('d M Y H:i') }}
-                                                        </small>
-                                                    @endif
-                                                </div>
-                                                <div>
-                                                    <a href="{{ url($document->file_path) }}" class="btn btn-sm btn-info"
-                                                        target="_blank">
-                                                        <i class="fas fa-eye"></i> View
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    @endif
-                                @endforeach
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         @else
-                            <p class="text-muted">No documents uploaded.</p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle mr-2"></i> No documents uploaded.
+                            </div>
                         @endif
                     </div>
 
@@ -320,13 +308,8 @@
                                     <label class="form-check-label" for="digital_signature">Use Digital Signature</label>
                                 </div>
 
-                                <div class="form-group">
-                                    <label for="documents">Attach Documents (Optional)</label>
-                                    <input type="file" class="form-control-file" id="documents" name="documents[]"
-                                        multiple>
-                                    <small class="form-text text-muted">You can attach additional documents to support your
-                                        decision.</small>
-                                </div>
+                                <label>Documents (PDF)</label>
+                                @include('workflows.create.components.document-upload-component')
 
                                 <div class="d-flex justify-content-between mt-3">
                                     <button type="button" class="btn btn-danger" data-toggle="modal"

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\WorkflowLogger;
 use App\Models\ApprovalMatrix;
 use App\Models\JenisAnggaran;
 use App\Models\User;
@@ -440,8 +441,8 @@ class WorkflowController extends Controller
         try {
             $validated = $request->validate([
                 'unit_kerja'           => 'required|string',
-                'cost_center'          => 'required|string',
-                'unit_cc_id'          => 'required|string',
+                'cost_center'          => 'nullable|string', //tempcoa
+                'unit_cc_id'          => 'nullable|string', //tempcoa
                 'nama_kegiatan'        => 'required|string',
                 'deskripsi_kegiatan'   => 'nullable|string',
                 'jenis_anggaran'       => 'required|string',
@@ -523,6 +524,12 @@ class WorkflowController extends Controller
                 'created_by' => Auth::id(),
                 'status' => $request->input('is_draft', false) ? 'DRAFT_CREATOR' : 'WAITING_APPROVAL',
             ]);
+
+
+            // ADD THIS:
+            // Log the workflow creation
+            $isDraft = $request->input('is_draft', false);
+            WorkflowLogger::logCreate($workflow, $isDraft);
 
             $workflow->save();
 
@@ -669,6 +676,10 @@ class WorkflowController extends Controller
 
     public function show(Request $request, Workflow $workflow)
     {
+        // ADD THIS:
+        // Log the workflow view action
+        WorkflowLogger::logView($workflow);
+
         // Check if the user is authorized to view this workflow
         $this->authorizeWorkflow($workflow);
 
@@ -767,6 +778,10 @@ class WorkflowController extends Controller
 
         DB::beginTransaction();
         try {
+            // ADD THIS:
+            // Log the workflow update
+            WorkflowLogger::logUpdate($workflow, array_keys($validated));
+
             // Update workflow
             $workflow->update([
                 'nomor_pengajuan' => $validated['nomor_pengajuan'],
@@ -909,6 +924,11 @@ class WorkflowController extends Controller
                 throw new \Exception('No active approval record found for this user.');
             }
 
+            // ADD THIS:
+            // Log the approval action
+            WorkflowLogger::logApprove($workflow, $approval->role, $validated['notes'] ?? null);
+
+
             // Update approval status
             $approval->update([
                 'status' => 'APPROVED',
@@ -1001,6 +1021,10 @@ class WorkflowController extends Controller
                 throw new \Exception('No active approval record found for this user.');
             }
 
+            // Log the rejection action
+            WorkflowLogger::logReject($workflow, $approval->role, $validated['notes']);
+
+
             // Update approval status
             $approval->update([
                 'status' => 'REJECTED',
@@ -1031,6 +1055,7 @@ class WorkflowController extends Controller
                     // Store the relative path
                     $relativePath = "documents/{$workflow->id}/{$uniqueName}";
 
+
                     // Create document record
                     WorkflowDocument::create([
                         'workflow_id' => $workflow->id,
@@ -1042,6 +1067,8 @@ class WorkflowController extends Controller
                 }
             }
 
+            // ADD THIS:
+            WorkflowLogger::log($workflow, 'SAVE_DRAFT', $workflow->getOriginal('status'), 'DRAFT_CREATOR', 'CREATOR', 'Workflow saved as draft');
             // Update workflow status to REVISED (sent back to creator)
             $workflow->update(['status' => 'DRAFT_CREATOR']);
 

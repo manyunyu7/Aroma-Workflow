@@ -204,4 +204,21 @@ class Workflow extends Model
 
         return $colorMap[$this->status] ?? 'secondary';
     }
+
+
+    /**
+     * Add this relationship method to your existing Workflow model
+     */
+    public function logs()
+    {
+        return $this->hasMany(WorkflowLog::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get the latest log entry for this workflow
+     */
+    public function latestLog()
+    {
+        return $this->hasOne(WorkflowLog::class)->latest();
+    }
 }

@@ -142,93 +142,8 @@
 
                                 <button type="button" class="btn btn-secondary" id="addRoleBtn">Add Role</button>
 
-                                <!-- Add a modal for entering budget limits -->
-                                <div id="budgetModal" class="modal fade" tabindex="-1" role="dialog">
-                                    <div class="modal-dialog" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Set Budget Limits for <span id="roleName"></span>
-                                                </h5>
-                                                <button type="button" class="close" data-dismiss="modal"
-                                                    aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="form-group">
-                                                    <label for="minBudget_display">Minimum Budget (IDR)</label>
-                                                    <div class="input-group">
-                                                        <div class="input-group-prepend">
-                                                            <span class="input-group-text">Rp</span>
-                                                        </div>
-                                                        <input type="text" class="form-control" id="minBudget_display"
-                                                            placeholder="0">
-                                                        <input type="hidden" id="minBudget" value="0">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="maxBudget_display">Maximum Budget (IDR)</label>
-                                                    <div class="input-group">
-                                                        <div class="input-group-prepend">
-                                                            <span class="input-group-text">Rp</span>
-                                                        </div>
-                                                        <input type="text" class="form-control" id="maxBudget_display"
-                                                            placeholder="Leave empty for unlimited">
-                                                        <input type="hidden" id="maxBudget" value="">
-                                                    </div>
-                                                    <small class="form-text text-muted">Values will be automatically
-                                                        formatted with thousand separators as you type. Leave empty for
-                                                        unlimited budget.</small>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary"
-                                                    data-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-primary"
-                                                    id="saveBudgetBtn">Save</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Add a modal for entering budget limits -->
-                                <div id="budgetModal" class="modal fade" tabindex="-1" role="dialog">
-                                    <div class="modal-dialog" role="document">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Set Budget Limits for <span id="roleName"></span>
-                                                </h5>
-                                                <button type="button" class="close" data-dismiss="modal"
-                                                    aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="form-group">
-                                                    <label for="minBudget">Minimum Budget (IDR)</label>
-                                                    <input type="number" class="form-control" id="minBudget"
-                                                        placeholder="0" min="0">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="maxBudget">Maximum Budget (IDR)</label>
-                                                    <input type="number" class="form-control" id="maxBudget"
-                                                        placeholder="Enter maximum budget" min="0">
-                                                    <small class="form-text text-muted">Leave empty for unlimited
-                                                        budget.</small>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary"
-                                                    data-dismiss="modal">Cancel</button>
-                                                <button type="button" class="btn btn-primary"
-                                                    id="saveBudgetBtn">Save</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <div class="mt-3">
-                                    <!-- Update the table with additional columns for budget -->
+                                    <!-- Update the table with additional columns for budget and approval matrix -->
                                     <table id="roleTable" class="table table-bordered">
                                         <thead>
                                             <tr>
@@ -236,6 +151,7 @@
                                                 <th>Role</th>
                                                 <th>Min Budget (IDR)</th>
                                                 <th>Max Budget (IDR)</th>
+                                                <th>Approval Matrix</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -264,21 +180,149 @@
     </div>
 @endsection
 
-@section('app-script')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+@push('modals')
+    <!-- Role Selection Modal -->
+    <div id="roleModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Role</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="roleOptions">
+                        <div class="mb-3" data-role="Admin">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Admin</span>
+                                <button type="button" class="btn btn-sm btn-primary select-role">Select</button>
+                            </div>
+                        </div>
+                        <div class="mb-3" data-role="Creator">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Creator</span>
+                                <button type="button" class="btn btn-sm btn-primary select-role">Select</button>
+                            </div>
+                        </div>
+                        <div class="mb-3" data-role="Acknowledger">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Acknowledger</span>
+                                <button type="button" class="btn btn-sm btn-primary select-role">Select</button>
+                            </div>
+                        </div>
+                        <div class="mb-3" data-role="Unit Head - Approver">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Unit Head - Approver</span>
+                                <button type="button" class="btn btn-sm btn-primary select-role">Select</button>
+                            </div>
+                        </div>
+                        <div class="mb-3" data-role="Reviewer-Maker">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Reviewer-Maker</span>
+                                <button type="button" class="btn btn-sm btn-primary select-role">Select</button>
+                            </div>
+                        </div>
+                        <div class="mb-3" data-role="Reviewer-Approver">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Reviewer-Approver</span>
+                                <button type="button" class="btn btn-sm btn-primary select-role">Select</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endpush
+
+@push('modals')
+    <!-- Budget Modal -->
+    <div id="budgetModal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set Budget Limits for <span id="roleName"></span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="minBudget_display">Minimum Budget (IDR)</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Rp</span>
+                            </div>
+                            <input type="text" class="form-control" id="minBudget_display" placeholder="0">
+                            <input type="hidden" id="minBudget" value="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxBudget_display">Maximum Budget (IDR)</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Rp</span>
+                            </div>
+                            <input type="text" class="form-control" id="maxBudget_display"
+                                placeholder="Leave empty for unlimited">
+                            <input type="hidden" id="maxBudget" value="">
+                        </div>
+                        <small class="form-text text-muted">Values will be automatically
+                            formatted with thousand separators as you type. Leave empty for
+                            unlimited budget.</small>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <label>Approval Matrix (Optional)</label>
+                        <select class="form-control" id="approval_matrix_id" name="approval_matrix_id">
+                            <option value="">-- Select Approval Matrix --</option>
+                            @foreach (\App\Models\ApprovalMatrix::where('status', 'Active')->get() as $matrix)
+                                <option value="{{ $matrix->id }}" data-min="{{ $matrix->min_budget }}"
+                                    data-max="{{ $matrix->max_budget }}">
+                                    {{ $matrix->name }} ({{ number_format($matrix->min_budget) }} -
+                                    {{ $matrix->max_budget ? number_format($matrix->max_budget) : 'Unlimited' }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">Selecting an approval matrix will automatically set the min/max
+                            budget values.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveBudgetBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endpush
+
+@push('scripts')
     <script>
+        // ===== BUDGET FORMATTING FUNCTIONALITY =====
+        // Default budget values
+        const DEFAULT_MIN_BUDGET = 1;
+        const DEFAULT_MAX_BUDGET = 500000000;
+
+        // Function to format number with thousand separators
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Function to remove all non-numeric characters
+        function unformatNumber(str) {
+            return str.replace(/[^\d]/g, '');
+        }
+
+        // Function to format currency in table display
+        function formatCurrency(amount) {
+            if (amount === null || amount === '') return 'Unlimited';
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+
         $(document).ready(function() {
-            // ===== BUDGET FORMATTING FUNCTIONALITY =====
-            // Function to format number with thousand separators
-            function formatNumber(num) {
-                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-            }
-
-            // Function to remove all non-numeric characters
-            function unformatNumber(str) {
-                return str.replace(/[^\d]/g, '');
-            }
-
             // Format display fields on input for minBudget
             $('#minBudget_display').on('input', function() {
                 // Store cursor position
@@ -319,8 +363,34 @@
                 }
             });
 
-            // ===== ROLE MANAGEMENT =====
-            // Role management
+            // Connect approval matrix selection to budget values
+            $('#approval_matrix_id').on('change', function() {
+                const selectedOption = $(this).find('option:selected');
+                if (selectedOption.val()) {
+                    const minBudget = selectedOption.data('min');
+                    const maxBudget = selectedOption.data('max');
+
+                    // Update both hidden and display fields
+                    $('#minBudget').val(minBudget);
+                    $('#minBudget_display').val(formatNumber(minBudget));
+
+                    if (maxBudget) {
+                        $('#maxBudget').val(maxBudget);
+                        $('#maxBudget_display').val(formatNumber(maxBudget));
+                    } else {
+                        $('#maxBudget').val('');
+                        $('#maxBudget_display').val('');
+                    }
+                }
+            });
+        });
+    </script>
+@endpush
+
+@push('scripts')
+    <script>
+        // ===== ROLE MANAGEMENT FUNCTIONALITY =====
+        $(document).ready(function() {
             let roleCount = 0;
             const selectedRoles = new Map(); // Changed from Set to Map to store additional data
 
@@ -328,7 +398,8 @@
             @foreach ($masterUser->roles as $role)
                 selectedRoles.set("{{ $role->role }}", {
                     minBudget: "{{ $role->min_budget ?? 0 }}",
-                    maxBudget: "{{ $role->max_budget }}"
+                    maxBudget: "{{ $role->max_budget }}",
+                    approvalMatrixId: "{{ $role->approval_matrix_id }}"
                 });
             @endforeach
 
@@ -337,36 +408,36 @@
                 tbody.empty();
 
                 if (selectedRoles.size === 0) {
-                    tbody.append('<tr><td colspan="5" class="text-center">No roles selected</td></tr>');
+                    tbody.append('<tr><td colspan="6" class="text-center">No roles selected</td></tr>');
                     return;
                 }
 
                 let counter = 1;
-                selectedRoles.forEach((budgetInfo, role) => {
+                selectedRoles.forEach((roleInfo, role) => {
+                    const matrixName = roleInfo.approvalMatrixId ?
+                        $('#approval_matrix_id option[value="' + roleInfo.approvalMatrixId + '"]').text() :
+                        'Not selected';
+
                     const row = `
                 <tr>
                     <td>${counter}</td>
                     <td>${role}</td>
-                    <td>${formatCurrency(budgetInfo.minBudget || 0)}</td>
-                    <td>${budgetInfo.maxBudget ? formatCurrency(budgetInfo.maxBudget) : 'Unlimited'}</td>
+                    <td>${formatCurrency(roleInfo.minBudget || 0)}</td>
+                    <td>${roleInfo.maxBudget ? formatCurrency(roleInfo.maxBudget) : 'Unlimited'}</td>
+                    <td>${matrixName || 'Not selected'}</td>
                     <td>
                         <button type="button" class="btn btn-info btn-sm edit-budget mr-1" data-role="${role}">Edit Budget</button>
                         <button type="button" class="btn btn-danger btn-sm delete-role" data-role="${role}">Delete</button>
                         <input type="hidden" name="roles[${role}][role]" value="${role}">
-                        <input type="hidden" name="roles[${role}][min_budget]" value="${budgetInfo.minBudget || 0}">
-                        <input type="hidden" name="roles[${role}][max_budget]" value="${budgetInfo.maxBudget || ''}">
+                        <input type="hidden" name="roles[${role}][min_budget]" value="${roleInfo.minBudget || 0}">
+                        <input type="hidden" name="roles[${role}][max_budget]" value="${roleInfo.maxBudget || ''}">
+                        <input type="hidden" name="roles[${role}][approval_matrix_id]" value="${roleInfo.approvalMatrixId || ''}">
                     </td>
                 </tr>
             `;
                     tbody.append(row);
                     counter++;
                 });
-            }
-
-            // Function to format currency in table display
-            function formatCurrency(amount) {
-                if (amount === null || amount === '') return 'Unlimited';
-                return new Intl.NumberFormat('id-ID').format(amount);
             }
 
             // Initialize roles table
@@ -386,11 +457,14 @@
                     // Show budget modal
                     $('#roleName').text(role);
 
-                    // Reset budget fields
-                    $('#minBudget').val('0');
-                    $('#minBudget_display').val('0');
-                    $('#maxBudget').val('');
-                    $('#maxBudget_display').val('');
+                    // Set default budget values
+                    $('#minBudget').val(DEFAULT_MIN_BUDGET.toString());
+                    $('#minBudget_display').val(formatNumber(DEFAULT_MIN_BUDGET));
+                    $('#maxBudget').val(DEFAULT_MAX_BUDGET.toString());
+                    $('#maxBudget_display').val(formatNumber(DEFAULT_MAX_BUDGET));
+
+                    // Reset approval matrix selection
+                    $('#approval_matrix_id').val('');
 
                     $('#roleModal').modal('hide');
                     $('#budgetModal').modal('show');
@@ -408,21 +482,24 @@
                 const role = $(this).data('role');
                 const minBudget = $('#minBudget').val() || 0;
                 const maxBudget = $('#maxBudget').val() || null;
+                const approvalMatrixId = $('#approval_matrix_id').val() || null;
 
                 if (parseInt(minBudget, 10) < 0) {
                     alert('Minimum budget cannot be negative.');
                     return;
                 }
 
-                if (maxBudget !== null && maxBudget !== '' && parseInt(maxBudget, 10) < parseInt(minBudget, 10)) {
+                if (maxBudget !== null && maxBudget !== '' && parseInt(maxBudget, 10) < parseInt(minBudget,
+                        10)) {
                     alert('Maximum budget must be greater than or equal to minimum budget.');
                     return;
                 }
 
-                // Save role with budget limits
+                // Save role with budget limits and approval matrix info
                 selectedRoles.set(role, {
                     minBudget: minBudget,
-                    maxBudget: maxBudget
+                    maxBudget: maxBudget,
+                    approvalMatrixId: approvalMatrixId
                 });
 
                 updateRolesTable();
@@ -432,20 +509,23 @@
             // Edit budget when edit button is clicked
             $(document).on('click', '.edit-budget', function() {
                 const role = $(this).data('role');
-                const budgetInfo = selectedRoles.get(role);
+                const roleInfo = selectedRoles.get(role);
 
                 $('#roleName').text(role);
 
                 // Set both hidden and display fields
-                $('#minBudget').val(budgetInfo.minBudget || 0);
-                $('#minBudget_display').val(formatNumber(budgetInfo.minBudget || 0));
+                $('#minBudget').val(roleInfo.minBudget || 0);
+                $('#minBudget_display').val(formatNumber(roleInfo.minBudget || 0));
 
-                $('#maxBudget').val(budgetInfo.maxBudget || '');
-                if (budgetInfo.maxBudget) {
-                    $('#maxBudget_display').val(formatNumber(budgetInfo.maxBudget));
+                $('#maxBudget').val(roleInfo.maxBudget || '');
+                if (roleInfo.maxBudget) {
+                    $('#maxBudget_display').val(formatNumber(roleInfo.maxBudget));
                 } else {
                     $('#maxBudget_display').val('');
                 }
+
+                // Set approval matrix selection
+                $('#approval_matrix_id').val(roleInfo.approvalMatrixId || '');
 
                 $('#saveBudgetBtn').data('role', role);
                 $('#budgetModal').modal('show');
@@ -457,7 +537,14 @@
                 selectedRoles.delete(role);
                 updateRolesTable();
             });
+        });
+    </script>
+@endpush
 
+@push('scripts')
+    <script>
+        // ===== FORM VALIDATION AND BUTTONS =====
+        $(document).ready(function() {
             // Handle cancel button
             $('#cancelBtn').click(function() {
                 if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
@@ -476,4 +563,26 @@
             });
         });
     </script>
-@endsection
+@endpush
+
+@push('scripts')
+    <script>
+        // ===== MAIN DOCUMENT READY FUNCTION =====
+        $(document).ready(function() {
+            // Initialize Select2 for approval matrix dropdown
+            $('#approval_matrix_id').select2({
+                placeholder: "Select an approval matrix",
+                allowClear: true,
+                dropdownParent: $('#budgetModal')
+            });
+
+            // Declare selectedRoles in global scope for access across script files
+            window.selectedRoles = window.selectedRoles || new Map();
+        });
+    </script>
+@endpush
+
+{{-- Include Select2 JS --}}
+@push('scripts')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+@endpush

@@ -19,6 +19,7 @@
 
 
     @stack('styles')
+
     <!-- Toggle -->
     <link href="{{ URL::to('bootstrap_ui') }}/assets/libs/toggle_switch/dist/css/component-custom-switch.min.css"
         rel="stylesheet">
@@ -93,6 +94,9 @@
                 <!-- ============================================================== -->
                 @yield('page-wrapper')
             </div>
+
+            @stack('modals')
+
             <!-- ============================================================== -->
             <!-- End Container fluid  -->
             <!-- ============================================================== -->

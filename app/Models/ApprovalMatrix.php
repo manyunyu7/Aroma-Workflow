@@ -39,6 +39,12 @@ class ApprovalMatrix extends Model
             ->first();
     }
 
+    // In ApprovalMatrix model
+    public function userRoles()
+    {
+        return $this->hasMany(UserRole::class);
+    }
+
 
 
     // Accessors & Mutators

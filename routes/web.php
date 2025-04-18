@@ -104,6 +104,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('master-user', MasterUserController::class);
     Route::post('get-user-details', [MasterUserController::class, 'getUserDetailsByNik'])->name('get-user-details');
     Route::post('search-employees', [MasterUserController::class, 'searchEmployees'])->name('search-employees');
+    Route::post('check-user-exists', [MasterUserController::class, 'checkUserExists'])->name('check-user-exists');
 
     // Add the new resource route for approval matrix
     Route::resource('approval-matrix', ApprovalMatrixController::class)->except(['show']);

@@ -14,6 +14,7 @@ class UserRole extends Model
         'role',
         'min_budget',
         'max_budget',
+        'approval_matrix_id',
         'created_at',
         'updated_at'
     ];
@@ -26,14 +27,22 @@ class UserRole extends Model
         return $this->belongsTo(User::class);
     }
 
+
+
+    // In UserRole model
+    public function approvalMatrix()
+    {
+        return $this->belongsTo(ApprovalMatrix::class);
+    }
+
     /**
      * Get all roles that can handle the specified budget
      */
     public static function getRolesForBudget($budget)
     {
         return static::where('max_budget', '>=', $budget)
-                     ->distinct()
-                     ->pluck('role');
+            ->distinct()
+            ->pluck('role');
     }
 
     /**
@@ -42,9 +51,9 @@ class UserRole extends Model
     public static function getUsersWithRoleForBudget($role, $budget)
     {
         return static::where('role', $role)
-                     ->where('max_budget', '>=', $budget)
-                     ->with('user')
-                     ->get();
+            ->where('max_budget', '>=', $budget)
+            ->with('user')
+            ->get();
     }
 
     /**

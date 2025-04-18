@@ -84,19 +84,22 @@ class MasterUserController extends Controller
                 'created_by' => Auth::id(),
             ]);
 
-            // Add roles with budget limits
+            // Add roles with budget limits and approval matrix
             if (isset($request->roles) && is_array($request->roles)) {
                 foreach ($request->roles as $roleKey => $roleData) {
                     // Handle both formats: array of strings or array of arrays
                     if (is_array($roleData)) {
                         $role = $roleData['role'] ?? null;
-                        $minBudget = isset($roleData['min_budget']) ? (float)$roleData['min_budget'] : null;
+                        $minBudget = isset($roleData['min_budget']) ? (float)$roleData['min_budget'] : 1; // Default: 1
                         $maxBudget = isset($roleData['max_budget']) && $roleData['max_budget'] !== '' ?
-                            (float)$roleData['max_budget'] : null;
+                            (float)$roleData['max_budget'] : 500000000; // Default: 500,000,000
+                        $approvalMatrixId = isset($roleData['approval_matrix_id']) && $roleData['approval_matrix_id'] !== '' ?
+                            (int)$roleData['approval_matrix_id'] : null;
                     } else {
                         $role = $roleData;
-                        $minBudget = null;
-                        $maxBudget = null;
+                        $minBudget = 1; // Default: 1
+                        $maxBudget = 500000000; // Default: 500,000,000
+                        $approvalMatrixId = null;
                     }
 
                     if ($role) {
@@ -104,7 +107,8 @@ class MasterUserController extends Controller
                             'user_id' => $user->id,
                             'role' => $role,
                             'min_budget' => $minBudget,
-                            'max_budget' => $maxBudget
+                            'max_budget' => $maxBudget,
+                            'approval_matrix_id' => $approvalMatrixId
                         ]);
                     }
                 }
@@ -145,9 +149,6 @@ class MasterUserController extends Controller
      */
     public function update(Request $request, User $masterUser)
     {
-        // Remove this debug line once fixed
-        // return $request->all();
-
         $validator = Validator::make($request->all(), [
             'roles' => 'required|array|min:1',
             'status' => 'required|in:Active,Not Active',
@@ -171,12 +172,13 @@ class MasterUserController extends Controller
             // Remove existing roles
             $masterUser->roles()->delete();
 
-            // Add new roles with budget limits
+            // Add new roles with budget limits and approval matrix
             if (isset($request->roles) && is_array($request->roles)) {
                 foreach ($request->roles as $roleKey => $roleData) {
                     $role = null;
-                    $minBudget = null;
-                    $maxBudget = null;
+                    $minBudget = 1; // Default: 1
+                    $maxBudget = 500000000; // Default: 500,000,000
+                    $approvalMatrixId = null;
 
                     // Handle different possible structures of incoming data
                     if (is_array($roleData)) {
@@ -186,9 +188,11 @@ class MasterUserController extends Controller
                             $role = $roleKey; // If the role name is the array key
                         }
 
-                        $minBudget = isset($roleData['min_budget']) ? (float)$roleData['min_budget'] : null;
+                        $minBudget = isset($roleData['min_budget']) ? (float)$roleData['min_budget'] : 1;
                         $maxBudget = isset($roleData['max_budget']) && $roleData['max_budget'] !== ''
-                            ? (float)$roleData['max_budget'] : null;
+                            ? (float)$roleData['max_budget'] : 500000000;
+                        $approvalMatrixId = isset($roleData['approval_matrix_id']) && $roleData['approval_matrix_id'] !== ''
+                            ? (int)$roleData['approval_matrix_id'] : null;
                     } else {
                         $role = $roleData;
                     }
@@ -198,7 +202,8 @@ class MasterUserController extends Controller
                             'user_id' => $masterUser->id,
                             'role' => $role,
                             'min_budget' => $minBudget,
-                            'max_budget' => $maxBudget
+                            'max_budget' => $maxBudget,
+                            'approval_matrix_id' => $approvalMatrixId
                         ]);
                     }
                 }
@@ -255,8 +260,28 @@ class MasterUserController extends Controller
     }
 
 
+
     /**
-     * Search employees by name or part of name
+     * Check if a user already exists in the database
+     */
+    public function checkUserExists(Request $request)
+    {
+        $nik = $request->input('nik');
+
+        if (empty($nik)) {
+            return response()->json(['error' => 'NIK is required'], 400);
+        }
+
+        $exists = \App\Models\User::where('nik', $nik)->exists();
+
+        return response()->json([
+            'exists' => $exists
+        ]);
+    }
+
+
+    /**
+     * Search employees by name
      */
     public function searchEmployees(Request $request)
     {
@@ -306,11 +331,19 @@ class MasterUserController extends Controller
                 return response()->json(['error' => 'Failed to retrieve access token for employee details'], 500);
             }
 
+            // Get list of NIKs already in the database
+            $existingNiks = \App\Models\User::pluck('nik')->toArray();
+
             // Fetch details for each employee using NIK
             $detailedEmployees = [];
             foreach ($employees['payload'] as $employee) {
                 $nik = $employee['nik'] ?? null;
                 if (!$nik) continue;
+
+                // Skip if this NIK already exists in the database
+                if (in_array($nik, $existingNiks)) {
+                    continue;
+                }
 
                 $detailResponse = Http::withToken($accessTokenDetail)->post($endpointDetail, [
                     'nik' => $nik,

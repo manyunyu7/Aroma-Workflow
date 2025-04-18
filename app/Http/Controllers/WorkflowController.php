@@ -194,13 +194,13 @@ class WorkflowController extends Controller
         }
 
         // If roles is Creator or can add Unit Head - Approver
-        if (in_array('Creator', $currentRoles)) {
+        else if ($lastRole == 'Creator') {
             $availableRoles = ['Acknowledger', 'Unit Head - Approver'];
             Log::info('No roles selected yet. Available roles: ' . implode(', ', $availableRoles));
         }
 
         // If roles isAcknowledger, can add Unit Head - Approver
-        if (in_array('Acknowledger', $currentRoles)) {
+        else if ($lastRole == 'Acknowledger') {
             $availableRoles = ['Unit Head - Approver'];
             Log::info('No roles selected yet. Available roles: ' . implode(', ', $availableRoles));
         }
@@ -449,7 +449,7 @@ class WorkflowController extends Controller
                 'creation_date'        => 'required|string',
                 'total_nilai'          => 'required|numeric|min:0',
                 'waktu_penggunaan'     => 'required|date',
-                'account'              => 'required|string',
+                'account'              => 'nullable|string',
                 'pics'                 => 'required|array',
                 'pics.*.user_id'       => 'required',
                 'pics.*.notes'         => 'nullable|string',

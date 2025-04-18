@@ -56,7 +56,7 @@
         <input type="hidden" name="cost_center_id" value="{{ $costCenterId }}">
         <input type="hidden" name="unit_cc_id" value="{{ $unitCcId }}">
     @else
-        <select class="form-control select2" id="cost_center_select" name="cost_center" required>
+        <select class="form-control select2" id="cost_center_select" name="cost_center">
             <option value="">-- Pilih Cost Center --</option>
             @foreach ($costCenterData as $cc)
                 <option value="{{ $cc['cc_name'] }}"
@@ -113,7 +113,7 @@
 <div class="form-group">
     <label for="account">Account (Chart of Accounts)</label><br>
     @if ($costCenterExists && !empty($accountList))
-        <select class="form-control select2" id="account" name="account" required>
+        <select class="form-control select2" id="account" name="account">
             <option value="">-- Select Account --</option>
             @foreach ($accountList as $account)
                 <option value="{{ $account['account_id'] }}" {{ old('account') == $account['account_id'] ? 'selected' : '' }}>
@@ -122,11 +122,11 @@
             @endforeach
         </select>
     @elseif(!$costCenterExists)
-        <select class="form-control select2" id="account" name="account" required disabled>
+        <select class="form-control select2" id="account" name="account">
             <option value="">-- Pilih Cost Center terlebih dahulu --</option>
         </select>
     @else
-        <select class="form-control select2" id="account" name="account" required>
+        <select class="form-control select2" id="account" name="account" >
             <option value="">-- No accounts available --</option>
         </select>
     @endif

@@ -896,6 +896,9 @@ class WorkflowController extends Controller
         }
     }
 
+    /**
+     * Updated approve method to work with document upload component
+     */
     public function approve(Request $request, Workflow $workflow)
     {
         // Validate request
@@ -904,6 +907,10 @@ class WorkflowController extends Controller
             'digital_signature' => 'nullable|boolean',
             'documents' => 'nullable|array',
             'documents.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+            'document_categories.*' => 'nullable|string',
+            'document_types.*' => 'nullable|string',
+            'document_sequence.*' => 'nullable|integer',
+            'document_notes.*' => 'nullable|string',
         ]);
 
         // Check if user can approve this workflow
@@ -924,10 +931,8 @@ class WorkflowController extends Controller
                 throw new \Exception('No active approval record found for this user.');
             }
 
-            // ADD THIS:
             // Log the approval action
             WorkflowLogger::logApprove($workflow, $approval->role, $validated['notes'] ?? null);
-
 
             // Update approval status
             $approval->update([
@@ -940,34 +945,48 @@ class WorkflowController extends Controller
 
             // Handle document uploads if any
             if ($request->hasFile('documents')) {
-                foreach ($request->file('documents') as $file) {
-                    // Generate unique filename
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $extension = $file->getClientOriginalExtension();
-                    $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+                $files = $request->file('documents');
 
-                    // Create directory path with workflow ID
-                    $directory = public_path("documents/{$workflow->id}");
+                // Create directory path with workflow ID
+                $directory = public_path("documents/{$workflow->id}");
 
-                    // Ensure the directory exists
-                    if (!file_exists($directory)) {
-                        mkdir($directory, 0777, true);
+                // Ensure the directory exists
+                if (!file_exists($directory)) {
+                    mkdir($directory, 0777, true);
+                }
+
+                foreach ($files as $index => $file) {
+                    if ($file && $file->isValid()) {
+                        // Get document metadata for this file
+                        $documentCategory = $request->input("document_categories.$index", 'SUPPORTING');
+                        $documentType = $request->input("document_types.$index", 'OTHER');
+                        $sequence = $request->input("document_sequence.$index", $index);
+                        $notes = $request->input("document_notes.$index");
+
+                        // Generate unique filename
+                        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                        $extension = $file->getClientOriginalExtension();
+                        $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+                        // Move file to the directory
+                        $file->move($directory, $uniqueName);
+
+                        // Store the relative path
+                        $relativePath = "documents/{$workflow->id}/{$uniqueName}";
+
+                        // Create document record
+                        WorkflowDocument::create([
+                            'workflow_id' => $workflow->id,
+                            'file_path' => $relativePath,
+                            'file_name' => $originalName,
+                            'file_type' => $extension,
+                            'document_category' => $documentCategory,
+                            'document_type' => $documentType,
+                            'sequence' => $sequence,
+                            'notes' => $notes,
+                            'uploaded_by' => Auth::id(),
+                        ]);
                     }
-
-                    // Move file to the directory
-                    $file->move($directory, $uniqueName);
-
-                    // Store the relative path
-                    $relativePath = "documents/{$workflow->id}/{$uniqueName}";
-
-                    // Create document record
-                    WorkflowDocument::create([
-                        'workflow_id' => $workflow->id,
-                        'file_path' => $relativePath,
-                        'file_name' => $originalName,
-                        'file_type' => $extension,
-                        'uploaded_by' => Auth::id(),
-                    ]);
                 }
             }
 
@@ -994,6 +1013,9 @@ class WorkflowController extends Controller
         }
     }
 
+    /**
+     * Updated reject method to work with document upload component
+     */
     public function reject(Request $request, Workflow $workflow)
     {
         // Validate request
@@ -1001,6 +1023,10 @@ class WorkflowController extends Controller
             'notes' => 'required|string',
             'documents' => 'nullable|array',
             'documents.*' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+            'document_categories.*' => 'nullable|string',
+            'document_types.*' => 'nullable|string',
+            'document_sequence.*' => 'nullable|integer',
+            'document_notes.*' => 'nullable|string',
         ]);
 
         // Check if user can reject this workflow
@@ -1024,7 +1050,6 @@ class WorkflowController extends Controller
             // Log the rejection action
             WorkflowLogger::logReject($workflow, $approval->role, $validated['notes']);
 
-
             // Update approval status
             $approval->update([
                 'status' => 'REJECTED',
@@ -1035,41 +1060,55 @@ class WorkflowController extends Controller
 
             // Handle document uploads if any
             if ($request->hasFile('documents')) {
-                foreach ($request->file('documents') as $file) {
-                    // Generate unique filename
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $extension = $file->getClientOriginalExtension();
-                    $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+                $files = $request->file('documents');
 
-                    // Create directory path with workflow ID
-                    $directory = public_path("documents/{$workflow->id}");
+                // Create directory path with workflow ID
+                $directory = public_path("documents/{$workflow->id}");
 
-                    // Ensure the directory exists
-                    if (!file_exists($directory)) {
-                        mkdir($directory, 0777, true);
+                // Ensure the directory exists
+                if (!file_exists($directory)) {
+                    mkdir($directory, 0777, true);
+                }
+
+                foreach ($files as $index => $file) {
+                    if ($file && $file->isValid()) {
+                        // Get document metadata for this file
+                        $documentCategory = $request->input("document_categories.$index", 'SUPPORTING');
+                        $documentType = $request->input("document_types.$index", 'OTHER');
+                        $sequence = $request->input("document_sequence.$index", $index);
+                        $notes = $request->input("document_notes.$index");
+
+                        // Generate unique filename
+                        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                        $extension = $file->getClientOriginalExtension();
+                        $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+                        // Move file to the directory
+                        $file->move($directory, $uniqueName);
+
+                        // Store the relative path
+                        $relativePath = "documents/{$workflow->id}/{$uniqueName}";
+
+                        // Create document record
+                        WorkflowDocument::create([
+                            'workflow_id' => $workflow->id,
+                            'file_path' => $relativePath,
+                            'file_name' => $originalName,
+                            'file_type' => $extension,
+                            'document_category' => $documentCategory,
+                            'document_type' => $documentType,
+                            'sequence' => $sequence,
+                            'notes' => $notes,
+                            'uploaded_by' => Auth::id(),
+                        ]);
                     }
-
-                    // Move file to the directory
-                    $file->move($directory, $uniqueName);
-
-                    // Store the relative path
-                    $relativePath = "documents/{$workflow->id}/{$uniqueName}";
-
-
-                    // Create document record
-                    WorkflowDocument::create([
-                        'workflow_id' => $workflow->id,
-                        'file_path' => $relativePath,
-                        'file_name' => $originalName,
-                        'file_type' => $extension,
-                        'uploaded_by' => Auth::id(),
-                    ]);
                 }
             }
 
-            // ADD THIS:
-            WorkflowLogger::log($workflow, 'SAVE_DRAFT', $workflow->getOriginal('status'), 'DRAFT_CREATOR', 'CREATOR', 'Workflow saved as draft');
-            // Update workflow status to REVISED (sent back to creator)
+            // Log the workflow status change
+            WorkflowLogger::log($workflow, 'SAVE_DRAFT', $workflow->getOriginal('status'), 'DRAFT_CREATOR', 'CREATOR', 'Workflow rejected and sent back to creator');
+
+            // Update workflow status to DRAFT_CREATOR (sent back to creator)
             $workflow->update(['status' => 'DRAFT_CREATOR']);
 
             // Reset all approvals to inactive except the creator

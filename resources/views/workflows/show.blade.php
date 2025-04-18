@@ -180,10 +180,8 @@
                 </div>
 
                 <!-- Document Section -->
-                <div class="col-md-6 col-12">
+                <div class="col-md-12 col-12">
                     <div class="form-group">
-                        <label>Justification Documents</label>
-
                         @if ($workflowDocuments->isNotEmpty())
                             <div class="document-list">
                                 @php

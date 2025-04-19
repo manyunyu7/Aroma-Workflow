@@ -366,7 +366,23 @@
                         @endphp
                         <tr>
                             <td>{{ $user ? $user->name : 'Unknown User' }}</td>
-                            <td>{{ $approval->role }}</td>
+                            <td>
+                                @php
+                                    $roleName = \App\Models\Workflow::getStatusName($approval->role);
+                                    $badgeClass = match($roleName) {
+                                        'Creator' => 'badge-secondary',
+                                        'Acknowledger' => 'badge-info',
+                                        'Unit Head - Approver' => 'badge-primary',
+                                        'Reviewer-Maker' => 'badge-warning',
+                                        'Reviewer-Approver' => 'badge-success',
+                                        default => 'badge-light'
+                                    };
+                                @endphp
+                                <span class="badge {{ $badgeClass }} badge-pill px-3 py-2 text-uppercase">
+                                    <i class="mr-2"></i>
+                                    {{ $roleName }}
+                                </span>
+                            </td>
                             <td>{{ $user ? $user->jabatan : 'N/A' }}</td>
                             <td>{{ $approval->digital_signature ? 'Yes' : 'No' }}</td>
                             <td>

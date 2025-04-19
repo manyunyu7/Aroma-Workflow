@@ -1,3 +1,5 @@
+{{-- resources/views/workflows/create/components/styles.blade.php --}}
+
 <style>
     /* Style for the drop zone */
     .drop-zone {

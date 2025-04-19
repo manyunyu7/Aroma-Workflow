@@ -1,3 +1,5 @@
+{{-- resources/views/workflows/create/components/form-basic-info.blade.php --}}
+
 <div class="form-group d-none">
     <label>Nomor Pengajuan</label>
     <input type="text" class="form-control" name="nomor_pengajuan" placeholder="Nomor Pengajuan"

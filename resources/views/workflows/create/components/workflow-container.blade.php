@@ -1,3 +1,4 @@
+{{-- resources/views/workflows/create/components/workflow-container.blade.php --}}
 <!-- Updated Workflow Container with Table Structure -->
 <div class="workflow-container mb-4">
     <div class="current-workflow">

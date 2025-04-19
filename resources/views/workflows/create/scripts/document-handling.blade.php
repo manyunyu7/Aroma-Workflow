@@ -1,3 +1,5 @@
+resources/views/workflows/create/scripts/document-handling.blade.php
+
 <script>
     function initDocumentHandling() {
         const dropZone = document.getElementById('dropZone');

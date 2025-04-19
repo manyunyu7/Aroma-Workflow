@@ -1,3 +1,4 @@
+{{-- resources/views/workflows/create/scripts/main-script.blade.php --}}
 <script>
     // Updated to use GET instead of POST
 

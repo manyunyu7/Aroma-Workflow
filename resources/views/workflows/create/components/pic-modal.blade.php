@@ -1,3 +1,5 @@
+{{-- resources/views/workflows/create/components/pic-modal.blade.php --}}
+
 <!-- Refactored Modal without steps -->
 <div class="modal fade" id="pic-modal" tabindex="-1" aria-labelledby="picModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">

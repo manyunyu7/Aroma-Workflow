@@ -1,3 +1,5 @@
+{{-- resources/views/workflows/create/scripts/workflow-components.blade.php --}}
+
 <script>
     function initWorkflowComponents() {
         // Global variables

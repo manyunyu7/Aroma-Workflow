@@ -1,3 +1,5 @@
+{{-- resources/views/workflows/create/components/document-upload-component.blade.php --}}
+
 @push('styles')
 <style>
     .custom-file-input:lang(en)~.custom-file-label::after {

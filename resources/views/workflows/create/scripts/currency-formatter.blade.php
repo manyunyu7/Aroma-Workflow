@@ -1,3 +1,4 @@
+{{-- resources/views/workflows/create/scripts/currency-formatter.blade.php --}}
 <script>
     function initCurrencyFormatter() {
         const displayField = document.getElementById('total_nilai_display');

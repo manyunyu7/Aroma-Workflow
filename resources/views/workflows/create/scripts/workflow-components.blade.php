@@ -41,25 +41,27 @@
         }
 
         // NEW FUNCTION: Check if a user is already selected in the workflow
+        // Check if a user is already selected in the workflow
         function isUserAlreadySelected(userId) {
-            let isAlreadySelected = false;
-            // Skip check if this is for a Reviewer-Approver and the selected user is already a Reviewer-Maker
-            if (selectedRole === 'Reviewer-Approver' && approverUserId === selectedUserId) {
-                return false;
-            }
+            let appearances = 0;
 
-            // Check all existing PICs
+            // Count how many times this user appears in the workflow
             $(".pic-entry").each(function() {
                 const picUserId = $(this).data('user-id');
                 if (picUserId === userId) {
-                    isAlreadySelected = true;
-                    return false; // Break out of the each loop
+                    appearances++;
                 }
             });
 
-            return isAlreadySelected;
-        }
+            // Special case: If this is a Reviewer-Approver being paired with a Reviewer-Maker (same user)
+            if (selectedRole === 'Reviewer-Approver' && selectedUserId === userId) {
+                // Allow the user to be both maker and approver in the SAME pair
+                return false;
+            }
 
+            // If the user appears at least once, they're already selected
+            return appearances > 0;
+        }
         // Initialize Select2 components
         function initSelect2Components() {
             unitKerjaSelect.select2({
@@ -807,7 +809,8 @@
 
                 if (isApproverDuplicate) {
                     alert(
-                        'The selected approver is already part of the workflow. Please select a different approver.');
+                        'The selected approver is already part of the workflow. Please select a different approver.'
+                        );
                     return;
                 }
 

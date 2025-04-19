@@ -1,5 +1,11 @@
 {{-- resources/views/workflows/create/components/document-upload-component.blade.php --}}
 
+{{-- Check if we're in edit mode --}}
+@php
+    $isEdit = isset($workflow) && $workflow->exists;
+    $workflowDocuments = $isEdit ? App\Models\WorkflowDocument::where('workflow_id', $workflow->id)->orderBy('sequence', 'asc')->get() : collect([]);
+@endphp
+
 @push('styles')
 <style>
     .custom-file-input:lang(en)~.custom-file-label::after {
@@ -40,7 +46,7 @@
 <!-- Document Table -->
 <div class="table-responsive">
     <table class="table table-bordered table-hover">
-        <thead class="thead-light" id="documentTableHeader" style="display: none;">
+        <thead class="thead-light" id="documentTableHeader" style="{{ ($isEdit && $workflowDocuments->count() > 0) ? '' : 'display: none;' }}">
             <tr>
                 <th width="5%">#</th>
                 <th width="20%">File</th>
@@ -52,7 +58,45 @@
             </tr>
         </thead>
         <tbody id="documentList">
-            <!-- Documents will be added here dynamically -->
+            <!-- In edit mode, show existing documents -->
+            @if($isEdit && $workflowDocuments->count() > 0)
+                @foreach($workflowDocuments as $index => $document)
+                    <tr data-document-id="{{ $document->id }}">
+                        <td>{{ $index + 1 }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-pdf mr-2 text-primary"></i>
+                                <span>{{ $document->file_name }}.{{ $document->file_type }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" value="{{ $document->file_name }}" readonly>
+                            <input type="hidden" name="existing_document_ids[]" value="{{ $document->id }}">
+                        </td>
+                        <td>
+                            <select class="form-control" name="existing_document_categories[{{ $document->id }}]">
+                                <option value="MAIN" {{ $document->document_category === 'MAIN' ? 'selected' : '' }}>Main Document</option>
+                                <option value="SUPPORTING" {{ $document->document_category === 'SUPPORTING' || !$document->document_category ? 'selected' : '' }}>Supporting Document</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" class="form-control" value="{{ App\Models\User::find($document->uploaded_by)->name ?? 'Unknown' }}" readonly>
+                        </td>
+                        <td>{{ $document->file_size ?? 'N/A' }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/{{ $document->file_path }}" target="_blank" class="btn btn-outline-info" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger remove-existing-doc" title="Remove" data-document-id="{{ $document->id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="document_sequence[{{ $document->id }}]" value="{{ $index }}">
+                        </td>
+                    </tr>
+                @endforeach
+            @endif
         </tbody>
     </table>
 </div>
@@ -85,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const documentList = document.getElementById('documentList');
     const documentTableHeader = document.getElementById('documentTableHeader');
     const addDocumentBtn = document.getElementById('addDocumentBtn');
-    let documentItemsCount = 0;
+    let documentItemsCount = {{ $isEdit ? $workflowDocuments->count() : 0 }};
     let selectedFile = null;
 
     // Format file size
@@ -201,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const extension = file.name.split('.').pop().toLowerCase();
         const fileIcon = getFileIcon(extension);
         const fileSize = formatFileSize(file.size);
-        const fileId = documentItemsCount;
+        const fileId = 'new_' + documentItemsCount;
         documentItemsCount++;
 
         // Get current count of rows to set sequence
@@ -319,9 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Check file extension
             const extension = selectedFile.name.split('.').pop().toLowerCase();
-            // const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
             const allowedExtensions = ['pdf'];
-
 
             if (!allowedExtensions.includes(extension)) {
                 alert('Invalid file type. Allowed types: PDF');
@@ -331,6 +373,27 @@ document.addEventListener('DOMContentLoaded', function() {
             addFileToList(selectedFile);
         } else {
             alert('Please select a file first');
+        }
+    });
+
+    // Handle removing existing documents (in edit mode)
+    $(document).on('click', '.remove-existing-doc', function() {
+        if (confirm('Are you sure you want to remove this document?')) {
+            const documentId = $(this).data('document-id');
+
+            // Add hidden input to mark this document for removal on the server
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'remove_documents[]',
+                value: documentId
+            }).appendTo('form');
+
+            // Remove the row from the UI
+            $(this).closest('tr').remove();
+
+            // Update the display
+            updateSequenceNumbers();
+            updateTableHeaderVisibility();
         }
     });
 

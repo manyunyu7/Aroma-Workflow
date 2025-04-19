@@ -97,11 +97,8 @@
             // Initialize currency formatter
             initCurrencyFormatter();
 
-            // Initialize workflow components
+            <!-- Initialize workflow components -->
             initWorkflowComponents();
-
-            // Set initial values from the workflow data
-            setInitialWorkflowValues();
 
             // Handle "Save as Draft" button
             $("#save-draft-btn").click(function() {
@@ -117,123 +114,82 @@
             });
         });
 
-        // Function to set initial values from the workflow data
-        function setInitialWorkflowValues() {
-            // Set the total nilai display value
-            const totalNilai = {{ $workflow->total_nilai ?? 0 }};
-            if (totalNilai > 0) {
-                const formattedValue = 'Rp ' + totalNilai.toLocaleString('id-ID');
-                $('#total_nilai_display').val(formattedValue);
-                $('#total_nilai').val(totalNilai);
+        // Load existing workflow PICs/approvers
+        @if(isset($workflowApprovals) && count($workflowApprovals) > 0)
+            // Clear any existing approvers except the creator (which is always there)
+            $('#pic-table-body tr.pic-entry:not([data-role="Creator"])').remove();
+
+            // Add each approval as a PIC entry
+            @foreach($workflowApprovals as $index => $approval)
+                @if($approval->role !== 'CREATOR') // Creator is already added
+                    @php
+                        $user = App\Models\User::find($approval->user_id);
+                        $userName = $user ? $user->name : 'Unknown User';
+                        $userUnit = $user ? $user->unit_kerja : 'Unknown Unit';
+                        $jabatan = $user ? $user->jabatan : '';
+                        // Get the display role
+                        $roleDisplay = '';
+                        if ($approval->role === 'CREATOR') $roleDisplay = 'Creator';
+                        elseif ($approval->role === 'ACKNOWLEDGED_BY_SPV') $roleDisplay = 'Acknowledger';
+                        elseif ($approval->role === 'APPROVED_BY_HEAD_UNIT') $roleDisplay = 'Unit Head - Approver';
+                        elseif ($approval->role === 'REVIEWED_BY_MAKER') $roleDisplay = 'Reviewer-Maker';
+                        elseif ($approval->role === 'REVIEWED_BY_APPROVER') $roleDisplay = 'Reviewer-Approver';
+                        else $roleDisplay = $approval->role;
+
+                        $digitalSignature = $approval->digital_signature ? 'checked' : '';
+                        $notes = $approval->notes ?? '';
+                    @endphp
+
+                    // Add to the table, but don't use addPicEntry since it has side effects
+                    // Instead, directly append the HTML
+                    const approverHtml_{{ $index }} = `
+                        <tr class="pic-entry" data-role="{{ $roleDisplay }}" data-user-id="{{ $approval->user_id }}">
+                            <td>
+                                <strong>{{ $userName }}</strong>
+                                <small class="d-block text-muted">{{ $userUnit }}</small>
+                                <input type="hidden" name="pics[{{ $index }}][user_id]" value="{{ $approval->user_id }}">
+                            </td>
+                            <td>
+                                <span class="role-badge
+                                    @if($roleDisplay == 'Acknowledger') role-acknowledger
+                                    @elseif($roleDisplay == 'Unit Head - Approver') role-head
+                                    @elseif($roleDisplay == 'Reviewer-Maker') role-reviewer-maker
+                                    @elseif($roleDisplay == 'Reviewer-Approver') role-reviewer-approver
+                                    @endif">{{ $roleDisplay }}</span>
+                                <input type="hidden" name="pics[{{ $index }}][role]" value="{{ $roleDisplay }}">
+                            </td>
+                            <td>
+                                {{ $jabatan }}
+                                <input type="hidden" name="pics[{{ $index }}][jabatan]" value="{{ $jabatan }}">
+                            </td>
+                            <td>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="pics[{{ $index }}][digital_signature]" value="1" {{ $digitalSignature }}>
+                                    <label class="form-check-label">Use Digital Signature</label>
+                                </div>
+                            </td>
+                            <td>
+                                <textarea name="pics[{{ $index }}][notes]" class="form-control form-control-sm" placeholder="Notes (optional)" rows="2">{{ $notes }}</textarea>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+
+                    $('#pic-table-body').append(approverHtml_{{ $index }});
+                @endif
+            @endforeach
+
+            // Update display state (show empty message if needed)
+            if ($("#pic-table-body tr.pic-entry").length > 1) {
+                $("#empty-workflow-message").addClass('d-none');
+            } else {
+                $("#empty-workflow-message").removeClass('d-none');
             }
-
-            // Load existing workflow PICs/approvers
-            @if(isset($workflowApprovals) && count($workflowApprovals) > 0)
-                // Map database roles to display names
-                const roleMap = {
-                    'CREATOR': 'Creator',
-                    'ACKNOWLEDGED_BY_SPV': 'Acknowledger',
-                    'APPROVED_BY_HEAD_UNIT': 'Unit Head - Approver',
-                    'REVIEWED_BY_MAKER': 'Reviewer-Maker',
-                    'REVIEWED_BY_APPROVER': 'Reviewer-Approver'
-                };
-
-                // Clear any existing approvers except the creator (which is always there)
-                $('#pic-table-body tr.pic-entry:not([data-role="Creator"])').remove();
-
-                // Add each approval as a PIC entry
-                @foreach($workflowApprovals as $index => $approval)
-                    @if($approval->role !== 'CREATOR') // Creator is already added
-                        @php
-                            $user = App\Models\User::find($approval->user_id);
-                            $userName = $user ? $user->name : 'Unknown User';
-                            $userUnit = $user ? $user->unit_kerja : 'Unknown Unit';
-                            $jabatan = $user ? $user->jabatan : '';
-                            // Get the display role from the map
-                            $roleDisplay = '';
-                            if ($approval->role === 'CREATOR') $roleDisplay = 'Creator';
-                            elseif ($approval->role === 'ACKNOWLEDGED_BY_SPV') $roleDisplay = 'Acknowledger';
-                            elseif ($approval->role === 'APPROVED_BY_HEAD_UNIT') $roleDisplay = 'Unit Head - Approver';
-                            elseif ($approval->role === 'REVIEWED_BY_MAKER') $roleDisplay = 'Reviewer-Maker';
-                            elseif ($approval->role === 'REVIEWED_BY_APPROVER') $roleDisplay = 'Reviewer-Approver';
-                            else $roleDisplay = $approval->role;
-
-                            $digitalSignature = $approval->digital_signature ? 'checked' : '';
-                            $notes = $approval->notes ?? '';
-                        @endphp
-
-                        // Add to the table, but don't use addPicEntry since it has side effects
-                        // Instead, directly append the HTML
-                        const approverHtml_{{ $index }} = `
-                            <tr class="pic-entry" data-role="{{ $roleDisplay }}" data-user-id="{{ $approval->user_id }}">
-                                <td>
-                                    <strong>{{ $userName }}</strong>
-                                    <small class="d-block text-muted">{{ $userUnit }}</small>
-                                    <input type="hidden" name="pics[{{ $index }}][user_id]" value="{{ $approval->user_id }}">
-                                </td>
-                                <td>
-                                    <span class="role-badge
-                                        @if($roleDisplay == 'Acknowledger') role-acknowledger
-                                        @elseif($roleDisplay == 'Unit Head - Approver') role-head
-                                        @elseif($roleDisplay == 'Reviewer-Maker') role-reviewer-maker
-                                        @elseif($roleDisplay == 'Reviewer-Approver') role-reviewer-approver
-                                        @endif">{{ $roleDisplay }}</span>
-                                    <input type="hidden" name="pics[{{ $index }}][role]" value="{{ $roleDisplay }}">
-                                </td>
-                                <td>
-                                    {{ $jabatan }}
-                                    <input type="hidden" name="pics[{{ $index }}][jabatan]" value="{{ $jabatan }}">
-                                </td>
-                                <td>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" name="pics[{{ $index }}][digital_signature]" value="1" {{ $digitalSignature }}>
-                                        <label class="form-check-label">Use Digital Signature</label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <textarea name="pics[{{ $index }}][notes]" class="form-control form-control-sm" placeholder="Notes (optional)" rows="2">{{ $notes }}</textarea>
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-
-                        $('#pic-table-body').append(approverHtml_{{ $index }});
-                    @endif
-                @endforeach
-
-                // Update display state (show empty message if needed)
-                if ($("#pic-table-body tr.pic-entry").length > 1) {
-                    $("#empty-workflow-message").addClass('d-none');
-                } else {
-                    $("#empty-workflow-message").removeClass('d-none');
-                }
-            @endif
-
-            // If there are existing documents, display them
-            @if(isset($workflowDocuments) && $workflowDocuments->count() > 0)
-                // Show the document table header
-                $("#documentTableHeader").show();
-
-                // For each existing document, create a visual entry
-                @foreach($workflowDocuments as $index => $document)
-                    // This will call a function that will be defined in the document handling script
-                    addExistingDocumentToList({
-                        id: {{ $document->id }},
-                        fileName: "{{ $document->file_name }}",
-                        fileType: "{{ $document->file_type }}",
-                        documentName: "{{ $document->file_name }}",
-                        category: "{{ $document->document_category ?? 'SUPPORTING' }}",
-                        uploader: "{{ App\Models\User::find($document->uploaded_by)->name ?? 'Unknown' }}",
-                        fileSize: "{{ $document->file_size ?? 'N/A' }}",
-                        filePath: "{{ $document->file_path }}"
-                    });
-                @endforeach
-            @endif
-        }
+        @endif
     </script>
 
     <!-- Include component scripts -->

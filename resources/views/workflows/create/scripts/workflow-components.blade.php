@@ -40,6 +40,26 @@
             return roles;
         }
 
+        // NEW FUNCTION: Check if a user is already selected in the workflow
+        function isUserAlreadySelected(userId) {
+            let isAlreadySelected = false;
+            // Skip check if this is for a Reviewer-Approver and the selected user is already a Reviewer-Maker
+            if (selectedRole === 'Reviewer-Approver' && approverUserId === selectedUserId) {
+                return false;
+            }
+
+            // Check all existing PICs
+            $(".pic-entry").each(function() {
+                const picUserId = $(this).data('user-id');
+                if (picUserId === userId) {
+                    isAlreadySelected = true;
+                    return false; // Break out of the each loop
+                }
+            });
+
+            return isAlreadySelected;
+        }
+
         // Initialize Select2 components
         function initSelect2Components() {
             unitKerjaSelect.select2({
@@ -104,7 +124,6 @@
         }
 
         // Check budget changes to update workflow rules
-        // Make sure the budget change handler updates role availability
         window.checkBudgetChanges = function(budget) {
             totalBudget = budget;
 
@@ -137,7 +156,6 @@
         };
 
         // Validate workflow based on budget rules
-        // Validate workflow based on budget rules
         function validateWorkflowWithBudget(budget) {
             // First remove any existing warnings
             $('#unit-mismatch-warning').remove();
@@ -161,12 +179,12 @@
                     if (acknowledgerUnit !== headUnit) {
                         // Show warning
                         const warningHtml = `
-                <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
-                    Please update your approvers.
-                </div>
-                `;
+            <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <strong>Warning:</strong> For budgets under 500,000,000 IDR, the Acknowledger and Unit Head must be from the same unit.
+                Please update your approvers.
+            </div>
+            `;
                         $('#pic-container').before(warningHtml);
                         return; // Exit early to avoid showing multiple warnings
                     }
@@ -189,12 +207,12 @@
                     if (headUnit !== currentUserUnitKerja) {
                         // Show warning
                         const warningHtml = `
-                <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <strong>Warning:</strong> For budgets under 3,000,000,000 IDR, the Unit Head must be from your unit (${currentUserUnitKerja}).
-                    Please update your Unit Head selection.
-                </div>
-                `;
+            <div id="unit-mismatch-warning" class="alert alert-warning mt-3">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <strong>Warning:</strong> For budgets under 3,000,000,000 IDR, the Unit Head must be from your unit (${currentUserUnitKerja}).
+                Please update your Unit Head selection.
+            </div>
+            `;
                         $('#pic-container').before(warningHtml);
                     }
                 }
@@ -202,7 +220,6 @@
         }
 
         // Load available roles based on current workflow
-        // Role loading function - Modified to handle Acknowledger visibility based on budget
         function loadAvailableRoles() {
             const roles = getCurrentRoles();
             const budget = parseFloat($('#total_nilai').val() || 0);
@@ -246,8 +263,8 @@
 
                         // Add a button to show the Acknowledger option
                         $(`<button id="show-acknowledger-btn" type="button" class="btn btn-outline-secondary btn-sm mt-2">
-                    <i class="fas fa-plus-circle mr-1"></i> Add Acknowledger Role (Optional)
-                </button>`).insertAfter(roleSelect);
+                <i class="fas fa-plus-circle mr-1"></i> Add Acknowledger Role (Optional)
+            </button>`).insertAfter(roleSelect);
 
                         // Handle the button click event
                         $("#show-acknowledger-btn").click(function() {
@@ -303,9 +320,26 @@
 
                     if (data.length > 0) {
                         data.forEach(function(employee) {
-                            employeeSelect.append(
-                                `<option value="${employee.id}" data-unit="${employee.unit_kerja}">${employee.name}</option>`
-                            );
+                            // Filter out employees already in the workflow
+                            // EXCEPT allow same user for Reviewer-Maker when selecting Reviewer-Approver
+                            const alreadySelected = isUserAlreadySelected(employee.id);
+
+                            // Allow the user to be selected if they're not already in the workflow
+                            // OR special case for Reviewer-Maker/Approver pairing
+                            const allowSelection = !alreadySelected ||
+                                (selectedRole === 'Reviewer-Approver' && employee.id ===
+                                    selectedUserId);
+
+                            if (allowSelection) {
+                                employeeSelect.append(
+                                    `<option value="${employee.id}" data-unit="${employee.unit_kerja}">${employee.name}</option>`
+                                );
+                            } else {
+                                // Add a disabled option showing the user is already selected
+                                employeeSelect.append(
+                                    `<option value="${employee.id}" data-unit="${employee.unit_kerja}" disabled>${employee.name} (already in workflow)</option>`
+                                );
+                            }
                         });
                         employeeSelect.prop('disabled', false);
                     } else {
@@ -343,9 +377,26 @@
 
                     if (data.length > 0) {
                         data.forEach(function(employee) {
-                            approverSelect.append(
-                                `<option value="${employee.id}" data-unit="${employee.unit_kerja}">${employee.name}</option>`
-                            );
+                            // Check if approver is already in the workflow
+                            // Also check if this is the same as the current maker for pairing
+                            const alreadySelected = isUserAlreadySelected(employee.id);
+                            const isCurrentMaker = (employee.id === selectedUserId);
+
+                            // We allow selection if:
+                            // 1. Not already selected in workflow, OR
+                            // 2. This is the same user as the current maker (pairing case)
+                            const allowSelection = !alreadySelected || isCurrentMaker;
+
+                            if (allowSelection) {
+                                approverSelect.append(
+                                    `<option value="${employee.id}" data-unit="${employee.unit_kerja}">${employee.name}${isCurrentMaker ? ' (same as Reviewer-Maker)' : ''}</option>`
+                                );
+                            } else {
+                                // Add a disabled option showing the user is already selected
+                                approverSelect.append(
+                                    `<option value="${employee.id}" data-unit="${employee.unit_kerja}" disabled>${employee.name} (already in workflow)</option>`
+                                );
+                            }
                         });
                         approverSelect.prop('disabled', false);
                     } else {
@@ -413,37 +464,37 @@
 
             // Create table row for the PIC
             const rowHtml = `
-            <tr class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}" ${picData.pairedWithMaker ? 'data-paired="true"' : ''}>
-                <td>
-                    <strong>${picData.userName}</strong>
-                    <small class="d-block text-muted">${picData.userUnit}</small>
-                    <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
-                </td>
-                <td>
-                    <span class="role-badge ${cssClass}">${picData.role}</span>
-                    <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
-                    ${picData.pairedWithMaker ? '<span class="badge badge-light ml-1">Paired</span>' : ''}
-                </td>
-                <td>
-                    ${picData.jabatan}
-                    <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
-                </td>
-                <td>
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
-                        <label class="form-check-label">Use Digital Signature</label>
-                    </div>
-                </td>
-                <td>
-                    <textarea name="pics[${picIndex}][notes]" class="form-control form-control-sm" placeholder="Notes (optional)" rows="2"></textarea>
-                </td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+        <tr class="pic-entry" data-role="${picData.role}" data-user-id="${picData.userId}" ${picData.pairedWithMaker ? 'data-paired="true"' : ''}>
+            <td>
+                <strong>${picData.userName}</strong>
+                <small class="d-block text-muted">${picData.userUnit}</small>
+                <input type="hidden" name="pics[${picIndex}][user_id]" value="${picData.userId}">
+            </td>
+            <td>
+                <span class="role-badge ${cssClass}">${picData.role}</span>
+                <input type="hidden" name="pics[${picIndex}][role]" value="${picData.role}">
+                ${picData.pairedWithMaker ? '<span class="badge badge-light ml-1">Paired</span>' : ''}
+            </td>
+            <td>
+                ${picData.jabatan}
+                <input type="hidden" name="pics[${picIndex}][jabatan]" value="${picData.jabatan}">
+            </td>
+            <td>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" name="pics[${picIndex}][digital_signature]" value="1">
+                    <label class="form-check-label">Use Digital Signature</label>
+                </div>
+            </td>
+            <td>
+                <textarea name="pics[${picIndex}][notes]" class="form-control form-control-sm" placeholder="Notes (optional)" rows="2"></textarea>
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        </tr>
+    `;
 
             // If this is a paired reviewer, add grouping visual indicator
             if (picData.role === 'Reviewer-Maker') {
@@ -485,7 +536,6 @@
         // Event Handlers
 
         // Add PIC button
-        // Update modal initialization to reflect budget value
         addPicBtn.click(function() {
             // Reset modal
             resetModal();
@@ -519,9 +569,7 @@
             savePicBtn.addClass('d-none');
         }
 
-        // Role selection event handler - Triggered when a user selects a different role from the dropdown
-        // Role selection event handler - Modified to handle Acknowledger role selection
-        // Role selection event handler - Modified to handle Acknowledger and Unit Head role selection
+        // Role selection event handler
         roleSelect.change(function() {
             selectedRole = $(this).val();
             const budget = parseFloat($('#total_nilai').val() || 0);
@@ -541,41 +589,41 @@
 
                 if (selectedRole === 'Acknowledger') {
                     roleDescription = `
-                    <div id="role-description-info" class="alert alert-primary mb-3 mt-3">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        <strong>About the Acknowledger Role:</strong>
-                        <ul class="mb-0 mt-1">
-                            <li>Acknowledges the workflow before it proceeds to review/approval stages</li>
-                            <li>For budgets over 500,000,000 IDR, this role is optional</li>
-                            <li>Current budget: IDR ${budgetFormatted}</li>
-                        </ul>
-                    </div>
-                `;
-                } else if (selectedRole === 'Unit Head - Approver') {
-                    roleDescription = `
-                <div id="role-description-info" class="alert alert-primary mb-3  mt-3">
+                <div id="role-description-info" class="alert alert-primary mb-3 mt-3">
                     <i class="fas fa-info-circle mr-2"></i>
-                    <strong>About the Unit Head - Approver Role:</strong>
+                    <strong>About the Acknowledger Role:</strong>
                     <ul class="mb-0 mt-1">
-                        <li>Department head who approves the workflow</li>
-                        <li>For budgets under 500,000,000 IDR, must be from the same unit as the Acknowledger (if one exists)</li>
-                        <li>For budgets under 3,000,000,000 IDR, must be from your unit kerja</li>
+                        <li>Acknowledges the workflow before it proceeds to review/approval stages</li>
+                        <li>For budgets over 500,000,000 IDR, this role is optional</li>
                         <li>Current budget: IDR ${budgetFormatted}</li>
                     </ul>
                 </div>
             `;
+                } else if (selectedRole === 'Unit Head - Approver') {
+                    roleDescription = `
+            <div id="role-description-info" class="alert alert-primary mb-3  mt-3">
+                <i class="fas fa-info-circle mr-2"></i>
+                <strong>About the Unit Head - Approver Role:</strong>
+                <ul class="mb-0 mt-1">
+                    <li>Department head who approves the workflow</li>
+                    <li>For budgets under 500,000,000 IDR, must be from the same unit as the Acknowledger (if one exists)</li>
+                    <li>For budgets under 3,000,000,000 IDR, must be from your unit kerja</li>
+                    <li>Current budget: IDR ${budgetFormatted}</li>
+                </ul>
+            </div>
+        `;
                 } else if (selectedRole === 'Reviewer-Maker') {
                     roleDescription = `
-                <div id="role-description-info" class="alert alert-primary mb-3 mt-3">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <strong>About the Reviewer-Maker Role:</strong>
-                    <ul class="mb-0 mt-1">
-                        <li>Creates a formal review of the workflow</li>
-                        <li>Must be paired with a Reviewer-Approver</li>
-                        <li>You'll need to select both the Reviewer-Maker and their corresponding Reviewer-Approver</li>
-                    </ul>
-                </div>
-            `;
+            <div id="role-description-info" class="alert alert-primary mb-3 mt-3">
+                <i class="fas fa-info-circle mr-2"></i>
+                <strong>About the Reviewer-Maker Role:</strong>
+                <ul class="mb-0 mt-1">
+                    <li>Creates a formal review of the workflow</li>
+                    <li>Must be paired with a Reviewer-Approver</li>
+                    <li>You'll need to select both the Reviewer-Maker and their corresponding Reviewer-Approver</li>
+                </ul>
+            </div>
+        `;
                 }
 
                 // Insert role description at the top of the modal body
@@ -654,13 +702,13 @@
                     // Add specific guidance for the reviewer-approver selection
                     if (!$("#reviewer-approver-guidance").length) {
                         const reviewerGuidance = `
-                    <div id="reviewer-approver-guidance" class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        <strong>Reviewer-Approver Pairing:</strong><br>
-                        Select a Reviewer-Approver who will approve the review created by the Reviewer-Maker.
-                        Both will be added to your workflow as a paired set.
-                    </div>
-                `;
+                <div id="reviewer-approver-guidance" class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Reviewer-Approver Pairing:</strong><br>
+                    Select a Reviewer-Approver who will approve the review created by the Reviewer-Maker.
+                    Both will be added to your workflow as a paired set.
+                </div>
+            `;
                         $(reviewerGuidance).prependTo(reviewerApproverSection);
                     }
                 } else {
@@ -695,6 +743,12 @@
                 selectedUserName = $(this).find('option:selected').text();
                 selectedUserUnit = $(this).find('option:selected').data('unit');
                 fetchJabatan(userId, $("#jabatan-display"), $("#jabatan-input"));
+
+                // If this is for a Reviewer-Maker, update the corresponding approver options
+                if (selectedRole === 'Reviewer-Maker' && approverUnitKerjaSelect.val()) {
+                    loadApprovers(approverUnitKerjaSelect.val());
+                }
+
                 checkFormValidity();
             } else {
                 selectedUserId = '';
@@ -730,11 +784,30 @@
                 return;
             }
 
+            // Check if this user is already in the workflow (except for Reviewer-Maker/Approver pairing)
+            const isDuplicate = isUserAlreadySelected(selectedUserId);
+            const isReviewerPairing = selectedRole === 'Reviewer-Maker' && approverUserId === selectedUserId;
+
+            if (isDuplicate && !isReviewerPairing) {
+                alert('This user is already part of the workflow. Please select a different user.');
+                return;
+            }
+
             selectedJabatan = $("#jabatan-input").val();
 
             if (selectedRole === 'Reviewer-Maker') {
                 if (!approverUserId) {
                     alert('Please select a reviewer-approver');
+                    return;
+                }
+
+                // Check if approver is already in the workflow (except if it's the same as maker for pairing)
+                const isApproverDuplicate = isUserAlreadySelected(approverUserId) && approverUserId !==
+                    selectedUserId;
+
+                if (isApproverDuplicate) {
+                    alert(
+                        'The selected approver is already part of the workflow. Please select a different approver.');
                     return;
                 }
 

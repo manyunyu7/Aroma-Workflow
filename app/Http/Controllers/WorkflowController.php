@@ -710,7 +710,13 @@ class WorkflowController extends Controller
         ));
     }
 
-    public function edit(Workflow $workflow)
+    /**
+     * Show the form for editing the specified workflow.
+     *
+     * @param  \App\Models\Workflow  $workflow
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(Workflow $workflow,Request $request)
     {
         // Check if user can edit this workflow
         if ($workflow->status !== 'DRAFT_CREATOR' || $workflow->created_by !== Auth::id()) {
@@ -718,33 +724,59 @@ class WorkflowController extends Controller
                 ->with('error', 'You can only edit workflows in draft status that you created.');
         }
 
+        $user = Auth::user();
+
         // Get jenis anggaran
         $jenisAnggaran = JenisAnggaran::whereNull('deleted_at')
             ->where('is_show', 1)
             ->get();
 
-        // Get all users
-        $users = User::where('status', 'active')->get();
+        // Get all available users
+        $users = User::where('status', 'active')
+            ->where('id', '!=', $user->id)
+            ->get();
 
-        // Get workflow approvals
+        // Get workflow approvals in sequence order
         $workflowApprovals = WorkflowApproval::where('workflow_id', $workflow->id)
             ->orderBy('sequence', 'asc')
             ->get();
 
         // Get workflow documents
         $workflowDocuments = WorkflowDocument::where('workflow_id', $workflow->id)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('sequence', 'asc')
             ->get();
 
-        return view('workflows.edit', compact(
+        // Get user roles for the current user
+        $userRoles = UserRole::where('user_id', $user->id)->get();
+
+        // Fetch employee details for cost center data
+        $nik = getAuthNik() ?? null;
+        $employeeDetails = getDetailNaker($nik);
+
+        $compact = compact(
             'workflow',
             'jenisAnggaran',
+            'user',
             'users',
             'workflowApprovals',
-            'workflowDocuments'
-        ));
+            'workflowDocuments',
+            'userRoles'
+        );
+
+        if ($request->dump == true) {
+            return $compact;
+        }
+
+        return view('workflows.edit.edit', $compact);
     }
 
+    /**
+     * Update the specified workflow in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Workflow  $workflow
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, Workflow $workflow)
     {
         // Check if user can update this workflow
@@ -755,84 +787,146 @@ class WorkflowController extends Controller
 
         $validStatusCodes = collect(Workflow::getStatuses())->pluck('code')->toArray();
 
-        $validated = $request->validate([
-            'nomor_pengajuan'    => 'required|string|unique:workflows,nomor_pengajuan,' . $workflow->id,
-            'unit_kerja'         => 'required|string',
-            'cost_center'        => 'required|string',
-            'nama_kegiatan'      => 'required|string',
-            'jenis_anggaran'     => 'required|string',
-            'total_nilai'        => 'required|numeric|min:0',
-            'waktu_penggunaan'   => 'required|date',
-            'account'            => 'required|string',
-            'pics'               => 'required|array',
-            'pics.*.user_id'     => 'required',
-            'pics.*.notes'       => 'nullable|string',
-            'pics.*.digital_signature' => 'nullable|string',
-            'pics.*.role'        => ['required', Rule::in($validStatusCodes)],
-            'new_documents'      => 'nullable|array',
-            'new_documents.*'    => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
-            'is_draft'           => 'nullable|boolean',
-            'remove_documents'   => 'nullable|array',
-            'remove_documents.*' => 'nullable|integer|exists:workflow_documents,id',
-        ]);
+        try {
+            $validated = $request->validate([
+                'unit_kerja'           => 'required|string',
+                'cost_center'          => 'nullable|string',
+                'cost_center_id'       => 'nullable|string',
+                'unit_cc_id'           => 'nullable|string',
+                'nama_kegiatan'        => 'required|string',
+                'deskripsi_kegiatan'   => 'nullable|string',
+                'jenis_anggaran'       => 'required|string',
+                'creation_date'        => 'required|string',
+                'total_nilai'          => 'required|numeric|min:0',
+                'waktu_penggunaan'     => 'required|date',
+                'account'              => 'nullable|string',
+                'pics'                 => 'required|array',
+                'pics.*.user_id'       => 'required',
+                'pics.*.notes'         => 'nullable|string',
+                'pics.*.digital_signature' => 'nullable|string',
+                'pics.*.role'          => 'required|string',
+                'documents'            => 'nullable|array',
+                'documents.*'          => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
+                'document_categories.*' => 'nullable|string',
+                'document_types.*'     => 'nullable|string',
+                'document_sequence.*'  => 'nullable|integer',
+                'document_notes.*'     => 'nullable|string',
+                'is_draft'             => 'nullable|boolean',
+                'remove_documents'     => 'nullable|array',
+                'remove_documents.*'   => 'nullable|integer|exists:workflow_documents,id',
+                'existing_document_ids' => 'nullable|array',
+                'existing_document_categories' => 'nullable|array',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Flash uploaded files to session to maintain them between requests
+            if ($request->hasFile('documents')) {
+                $request->flash();  // This will flash all input including files
+            }
+
+            return back()
+                ->withErrors($e->validator)
+                ->withInput();
+        }
 
         DB::beginTransaction();
         try {
-            // ADD THIS:
-            // Log the workflow update
-            WorkflowLogger::logUpdate($workflow, array_keys($validated));
-
-            // Update workflow
+            // Update workflow basic info
             $workflow->update([
-                'nomor_pengajuan' => $validated['nomor_pengajuan'],
                 'unit_kerja' => $validated['unit_kerja'],
-                'cost_center' => $validated['cost_center'],
+                'cost_center' => $validated['cost_center'] ?? null,
+                'cost_center_id' => $validated['cost_center_id'] ?? null,
+                'cost_center_account' => $validated['unit_cc_id'] ?? null,
                 'nama_kegiatan' => $validated['nama_kegiatan'],
+                'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'] ?? null,
                 'jenis_anggaran' => $validated['jenis_anggaran'],
                 'total_nilai' => $validated['total_nilai'],
                 'waktu_penggunaan' => $validated['waktu_penggunaan'],
-                'account' => $validated['account'],
+                'account' => $validated['account'] ?? null,
                 'status' => $request->input('is_draft', false) ? 'DRAFT_CREATOR' : 'WAITING_APPROVAL',
             ]);
 
-            // Delete existing approvals and recreate them
-            WorkflowApproval::where('workflow_id', $workflow->id)->delete();
+            // Log the update action
+            WorkflowLogger::logUpdate($workflow, array_keys($validated));
 
             // Process approvals/PICs
             if ($request->has('pics')) {
-                // Sort PICs by sequence
-                $pics = collect($request->pics)->sortBy(function ($pic) {
-                    // Define sequence based on role
-                    $roleSequence = [
-                        'CREATOR' => 1,
-                        'ACKNOWLEDGED_BY_SPV' => 2,
-                        'APPROVED_BY_HEAD_UNIT' => 3,
-                        'REVIEWED_BY_MAKER' => 4,
-                        'REVIEWED_BY_APPROVER' => 5,
-                    ];
+                // Delete existing approvals
+                WorkflowApproval::where('workflow_id', $workflow->id)->delete();
 
-                    return $roleSequence[$pic['role']] ?? 999;
-                })->values()->all();
+                // Use PICs in the exact order they came in the request
+                $pics = $request->pics;
+
+                // Find the creator index for reference
+                $creatorIndex = null;
+                foreach ($pics as $index => $pic) {
+                    if ($pic['role'] === 'Creator') {
+                        $creatorIndex = $index;
+                        break;
+                    }
+                }
+
+                // Determine next active person
+                $nextActiveIndex = null;
+                if (!$request->input('is_draft', false) && $creatorIndex !== null) {
+                    // Find the next person after creator in sequence
+                    $nextActiveIndex = $creatorIndex + 1;
+                    if ($nextActiveIndex >= count($pics)) {
+                        $nextActiveIndex = null; // No next person if creator is last
+                    }
+                }
 
                 foreach ($pics as $index => $pic) {
                     $isCurrentUser = ($pic['user_id'] == Auth::id());
+                    $role = $pic['role'];
+                    $isCreator = ($role === 'Creator');
+
+                    // Map role names to role codes for DB storage
+                    $roleCodeMap = [
+                        'Creator' => 'CREATOR',
+                        'Acknowledger' => 'ACKNOWLEDGED_BY_SPV',
+                        'Unit Head - Approver' => 'APPROVED_BY_HEAD_UNIT',
+                        'Reviewer-Maker' => 'REVIEWED_BY_MAKER',
+                        'Reviewer-Approver' => 'REVIEWED_BY_APPROVER'
+                    ];
+
+                    $roleCode = $roleCodeMap[$role] ?? $role;
+
+                    // Determine approval status
+                    $isApproved = false;
+                    if (!$request->input('is_draft', false)) {
+                        if ($isCreator) {
+                            $isApproved = true; // Creator is auto-approved on submission
+                        } else if ($isCurrentUser) {
+                            $isApproved = true; // Current user is auto-approved
+                        }
+                    }
+
+                    // Determine active status
+                    $isActive = false;
+                    if ($request->input('is_draft', false)) {
+                        // In draft mode, only creator is active
+                        $isActive = $isCreator;
+                    } else {
+                        // In submit mode, next person after creator is active
+                        $isActive = ($index === $nextActiveIndex);
+                    }
 
                     // Create the WorkflowApproval record
                     $approval = WorkflowApproval::create([
                         'workflow_id' => $workflow->id,
                         'user_id' => $pic['user_id'],
-                        'role' => $pic['role'],
+                        'role' => $roleCode,
                         'digital_signature' => $pic['digital_signature'] ?? 0,
                         'notes' => $pic['notes'] ?? null,
-                        'sequence' => $index + 1,
-                        'is_active' => ($index === 0 || $isCurrentUser) ? 1 : 0,
-                        'status' => $isCurrentUser && !$request->input('is_draft', false) ? 'APPROVED' : 'PENDING',
-                        'approved_at' => $isCurrentUser && !$request->input('is_draft', false) ? now() : null,
+                        'sequence' => $index + 1, // Keep original sequence
+                        'is_active' => $isActive ? 1 : 0,
+                        'status' => $isApproved ? 'APPROVED' : 'PENDING',
+                        'approved_at' => $isApproved ? now() : null,
                     ]);
                 }
             }
 
-            // Handle document removal
+            // Handle document removal if requested
             if ($request->has('remove_documents')) {
                 foreach ($request->input('remove_documents') as $documentId) {
                     $document = WorkflowDocument::find($documentId);
@@ -848,36 +942,72 @@ class WorkflowController extends Controller
                 }
             }
 
-            // Handle new document uploads
-            if ($request->hasFile('new_documents')) {
-                foreach ($request->file('new_documents') as $file) {
-                    // Generate unique filename
-                    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $extension = $file->getClientOriginalExtension();
-                    $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
-
-                    // Create directory path with workflow ID
-                    $directory = public_path("documents/{$workflow->id}");
-
-                    // Ensure the directory exists
-                    if (!file_exists($directory)) {
-                        mkdir($directory, 0777, true);
+            // Update existing document categories if any
+            if ($request->has('existing_document_ids') && $request->has('existing_document_categories')) {
+                foreach ($request->input('existing_document_ids') as $documentId) {
+                    if (isset($request->input('existing_document_categories')[$documentId])) {
+                        $document = WorkflowDocument::find($documentId);
+                        if ($document) {
+                            $document->update([
+                                'document_category' => $request->input('existing_document_categories')[$documentId],
+                                'sequence' => $request->input('document_sequence')[$documentId] ?? $document->sequence,
+                            ]);
+                        }
                     }
+                }
+            }
 
-                    // Move file to the directory
-                    $file->move($directory, $uniqueName);
+            // Handle new document uploads
+            if ($request->hasFile('documents')) {
+                $files = $request->file('documents');
 
-                    // Store the relative path
-                    $relativePath = "documents/{$workflow->id}/{$uniqueName}";
+                // Create directory for this workflow's documents
+                $directory = public_path("documents/{$workflow->id}");
+                if (!file_exists($directory)) {
+                    mkdir($directory, 0777, true);
+                }
 
-                    // Create document record
-                    WorkflowDocument::create([
-                        'workflow_id' => $workflow->id,
-                        'file_path' => $relativePath,
-                        'file_name' => $originalName,
-                        'file_type' => $extension,
-                        'uploaded_by' => Auth::id(),
-                    ]);
+                foreach ($files as $index => $file) {
+                    if ($file && $file->isValid()) {
+                        // Get file ID from the input name (dynamically generated in the view)
+                        $fileId = null;
+                        foreach ($request->input('document_types', []) as $key => $value) {
+                            if (strpos($key, 'new_') === 0) {
+                                $fileId = $key;
+                                break;
+                            }
+                        }
+
+                        // Get document metadata for this file
+                        $documentCategory = $request->input("document_categories.$fileId") ?? 'SUPPORTING';
+                        $documentType = $request->input("document_types.$fileId") ?? 'OTHER';
+                        $sequence = $request->input("document_sequence.$fileId") ?? $index;
+                        $notes = $request->input("document_notes.$fileId") ?? null;
+
+                        // Generate unique filename
+                        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                        $extension = $file->getClientOriginalExtension();
+                        $uniqueName = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+                        // Move file to the directory
+                        $file->move($directory, $uniqueName);
+
+                        // Store the relative path
+                        $relativePath = "documents/{$workflow->id}/{$uniqueName}";
+
+                        // Create document record
+                        WorkflowDocument::create([
+                            'workflow_id' => $workflow->id,
+                            'file_path' => $relativePath,
+                            'file_name' => $originalName,
+                            'file_type' => $extension,
+                            'document_category' => $documentCategory,
+                            'document_type' => $documentType,
+                            'sequence' => $sequence,
+                            'notes' => $notes,
+                            'uploaded_by' => Auth::id(),
+                        ]);
+                    }
                 }
             }
 
@@ -890,6 +1020,11 @@ class WorkflowController extends Controller
             return redirect()->route('workflows.index')->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log the error for debugging
+            Log::error('Workflow update error: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+
             return back()
                 ->withErrors(['error' => 'Something went wrong: ' . $e->getMessage()])
                 ->withInput();

@@ -100,6 +100,11 @@
             // Initialize workflow components
             initWorkflowComponents();
 
+            // Attach form submit handler to serialize PICs
+            $('#workflow-form').on('submit', function() {
+                serializePicsTable();
+            });
+
             // Handle "Save as Draft" button
             $("#save-draft-btn").click(function() {
                 // Add a hidden field to indicate this is a draft

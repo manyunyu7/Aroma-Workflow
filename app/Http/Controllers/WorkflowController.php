@@ -435,6 +435,8 @@ class WorkflowController extends Controller
 
     public function store(Request $request)
     {
+
+        // return $request->all();
         // Get valid status codes from your model
         $validStatusCodes = collect(Workflow::getStatuses())->pluck('code')->toArray();
 
@@ -459,6 +461,8 @@ class WorkflowController extends Controller
                 'documents.*'          => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png|max:5120',
                 // 'document_categories.*' => ['required', 'string', Rule::in(['MAIN', 'SUPPORTING'])],
                 // 'document_types.*'     => ['required', 'string', Rule::in(['JUSTIFICATION_DOC', 'REVIEW_DOC', 'OTHER'])],
+                'document_categories.*' => 'nullable|string', // No strict rule
+                'document_types.*'     => 'nullable|string', // No strict rule
                 'document_sequence.*'  => 'nullable|integer',
                 'document_notes.*'     => 'nullable|string',
                 'is_draft'             => 'nullable|boolean',

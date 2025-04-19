@@ -31,7 +31,8 @@
             <p class="text-muted">Workflow ID: {{ $workflow->id }} | Status: {{ $workflow->status }}</p>
             <hr>
 
-            <form action="{{ route('workflows.update', $workflow->id) }}" method="post" enctype="multipart/form-data" id="workflow-form">
+            <form action="{{ route('workflows.update', $workflow->id) }}" method="post" enctype="multipart/form-data"
+                id="workflow-form">
                 @csrf
                 @method('PUT')
 
@@ -97,8 +98,14 @@
             // Initialize currency formatter
             initCurrencyFormatter();
 
-            <!-- Initialize workflow components -->
+            <
+            !--Initialize workflow components-- >
             initWorkflowComponents();
+
+            // Attach form submit handler to serialize PICs
+            $('#workflow-form').on('submit', function() {
+                serializePicsTable();
+            });
 
             // Handle "Save as Draft" button
             $("#save-draft-btn").click(function() {
@@ -115,13 +122,13 @@
         });
 
         // Load existing workflow PICs/approvers
-        @if(isset($workflowApprovals) && count($workflowApprovals) > 0)
+        @if (isset($workflowApprovals) && count($workflowApprovals) > 0)
             // Clear any existing approvers except the creator (which is always there)
             $('#pic-table-body tr.pic-entry:not([data-role="Creator"])').remove();
 
             // Add each approval as a PIC entry
-            @foreach($workflowApprovals as $index => $approval)
-                @if($approval->role !== 'CREATOR') // Creator is already added
+            @foreach ($workflowApprovals as $index => $approval)
+                @if ($approval->role !== 'CREATOR') // Creator is already added
                     @php
                         $user = App\Models\User::find($approval->user_id);
                         $userName = $user ? $user->name : 'Unknown User';
@@ -129,12 +136,19 @@
                         $jabatan = $user ? $user->jabatan : '';
                         // Get the display role
                         $roleDisplay = '';
-                        if ($approval->role === 'CREATOR') $roleDisplay = 'Creator';
-                        elseif ($approval->role === 'ACKNOWLEDGED_BY_SPV') $roleDisplay = 'Acknowledger';
-                        elseif ($approval->role === 'APPROVED_BY_HEAD_UNIT') $roleDisplay = 'Unit Head - Approver';
-                        elseif ($approval->role === 'REVIEWED_BY_MAKER') $roleDisplay = 'Reviewer-Maker';
-                        elseif ($approval->role === 'REVIEWED_BY_APPROVER') $roleDisplay = 'Reviewer-Approver';
-                        else $roleDisplay = $approval->role;
+                        if ($approval->role === 'CREATOR') {
+                            $roleDisplay = 'Creator';
+                        } elseif ($approval->role === 'ACKNOWLEDGED_BY_SPV') {
+                            $roleDisplay = 'Acknowledger';
+                        } elseif ($approval->role === 'APPROVED_BY_HEAD_UNIT') {
+                            $roleDisplay = 'Unit Head - Approver';
+                        } elseif ($approval->role === 'REVIEWED_BY_MAKER') {
+                            $roleDisplay = 'Reviewer-Maker';
+                        } elseif ($approval->role === 'REVIEWED_BY_APPROVER') {
+                            $roleDisplay = 'Reviewer-Approver';
+                        } else {
+                            $roleDisplay = $approval->role;
+                        }
 
                         $digitalSignature = $approval->digital_signature ? 'checked' : '';
                         $notes = $approval->notes ?? '';
@@ -151,11 +165,10 @@
                             </td>
                             <td>
                                 <span class="role-badge
-                                    @if($roleDisplay == 'Acknowledger') role-acknowledger
+                                    @if ($roleDisplay == 'Acknowledger') role-acknowledger
                                     @elseif($roleDisplay == 'Unit Head - Approver') role-head
                                     @elseif($roleDisplay == 'Reviewer-Maker') role-reviewer-maker
-                                    @elseif($roleDisplay == 'Reviewer-Approver') role-reviewer-approver
-                                    @endif">{{ $roleDisplay }}</span>
+                                    @elseif($roleDisplay == 'Reviewer-Approver') role-reviewer-approver @endif">{{ $roleDisplay }}</span>
                                 <input type="hidden" name="pics[{{ $index }}][role]" value="{{ $roleDisplay }}">
                             </td>
                             <td>

@@ -1,6 +1,113 @@
 {{-- resources/views/workflows/create/scripts/workflow-components.blade.php --}}
 
 <script>
+    // Restore PICs table from serialized data after validation error
+    function restorePicsFromSerialized() {
+        @if (old('serialized_pics'))
+            const serializedPics = @json(old('serialized_pics', []));
+
+            // Clear existing PICs except Creator
+            $('#pic-table-body tr.pic-entry:not([data-role="Creator"])').remove();
+
+            // Add each PIC back to the table
+            Object.keys(serializedPics).forEach(function(phpIndex) {
+                const pic = serializedPics[phpIndex];
+                if (pic.role !== 'Creator') {
+                    // Add to the table with data we already have
+                    const picHtml = `
+                    <tr class="pic-entry" data-role="${pic.role}" data-user-id="${pic.user_id}">
+                        <td>
+                            <strong>${pic.user_name || 'User ID: ' + pic.user_id}</strong>
+                            <small class="d-block text-muted">${pic.user_unit || ''}</small>
+                            <input type="hidden" name="pics[${phpIndex}][user_id]" value="${pic.user_id}">
+                        </td>
+                        <td>
+                            <span class="role-badge ${
+                                pic.role === 'Acknowledger' ? 'role-acknowledger' :
+                                pic.role === 'Unit Head - Approver' ? 'role-head' :
+                                pic.role === 'Reviewer-Maker' ? 'role-reviewer-maker' :
+                                pic.role === 'Reviewer-Approver' ? 'role-reviewer-approver' :
+                                ''
+                            }">${pic.role}</span>
+                            <input type="hidden" name="pics[${phpIndex}][role]" value="${pic.role}">
+                        </td>
+                        <td>
+                            <span>${pic.jabatan || ''}</span>
+                            <input type="hidden" name="pics[${phpIndex}][jabatan]" value="${pic.jabatan || ''}">
+                        </td>
+                        <td>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="pics[${phpIndex}][digital_signature]"
+                                       value="1" ${pic.digital_signature == 1 ? 'checked' : ''}>
+                                <label class="form-check-label">Use Digital Signature</label>
+                            </div>
+                        </td>
+                        <td>
+                            <textarea name="pics[${phpIndex}][notes]" class="form-control form-control-sm"
+                                      placeholder="Notes (optional)" rows="2">${pic.notes || ''}</textarea>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-pic">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+
+                    $('#pic-table-body').append(picHtml);
+                }
+            });
+
+            // Update display state
+            if ($("#pic-table-body tr.pic-entry").length > 1) {
+                $("#empty-workflow-message").addClass('d-none');
+            } else {
+                $("#empty-workflow-message").removeClass('d-none');
+            }
+        @endif
+    }
+    // Serialize the entire PICs table to hidden inputs
+    function serializePicsTable() {
+        // Clear previous serialized inputs
+        $('.serialized-pic-data').remove();
+
+        // Create a container
+        const serializedContainer = $('<div class="serialized-pic-data" style="display:none;"></div>');
+
+        // Get all PICs from table
+        $('#pic-table-body tr.pic-entry').each(function(index) {
+            const $row = $(this);
+            const userId = $row.data('user-id');
+            const role = $row.data('role');
+            const userName = $row.find('td:first-child strong').text();
+            const userUnit = $row.find('td:first-child small').text();
+            const jabatan = $row.find('input[name*="[jabatan]"]').val();
+            const digitalSignature = $row.find('input[name*="[digital_signature]"]').prop('checked') ? 1 : 0;
+            const notes = $row.find('textarea[name*="[notes]"]').val();
+
+            // Create hidden inputs with sequential naming for Laravel input handling
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][user_id]" value="${userId}">`);
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][role]" value="${role}">`);
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][user_name]" value="${userName}">`);
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][user_unit]" value="${userUnit}">`);
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][jabatan]" value="${jabatan}">`);
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][digital_signature]" value="${digitalSignature}">`
+            );
+            serializedContainer.append(
+                `<input type="hidden" name="serialized_pics[${index}][notes]" value="${notes}">`);
+        });
+
+        // Append to form
+        $('#workflow-form').append(serializedContainer);
+    }
+
+
     function initWorkflowComponents() {
         // Global variables
         const picContainer = $("#pic-container");
@@ -31,6 +138,10 @@
 
         // Initialize Select2 components
         initSelect2Components();
+
+        // Restore workflow PICs from old inputs (if validation failed)
+        restorePicsFromSerialized();
+
 
         // Get current roles in the workflow
         function getCurrentRoles() {
@@ -812,7 +923,7 @@
                 if (isApproverDuplicate) {
                     alert(
                         'The selected approver is already part of the workflow. Please select a different approver.'
-                        );
+                    );
                     return;
                 }
 
